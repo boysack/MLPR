@@ -2,6 +2,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from math import ceil, sqrt
+from screeninfo import get_monitors
 
 def load(filename: str, delimiter: str = ","):
     if not os.path.isfile(filename):
@@ -54,15 +55,27 @@ def row(x):
     else:
         return x.reshape(1, -1)
 
+def get_screen_size():
+    primary_monitor = get_monitors()[0]
+    screen_width = primary_monitor.width
+    screen_height = primary_monitor.height
+    return screen_width, screen_height
+
 def hist_per_feat(D, L, label_dict, bins=None, subplots=True):
+    #TODO: fix bug: if subplots=False it show an empty plot in the end
+
     feats = D.shape[0]
     plots_per_row = ceil(sqrt(feats))
+
+    screen_width, screen_height = get_screen_size()
+    dpi = 100
+    plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
 
     for i in range(D.shape[0]):
         if subplots:
             plt.subplot(plots_per_row, plots_per_row, i+1)
         else:
-            plt.figure()
+            plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
         for key, value in label_dict.items():
             filtered_D = D[i, L==value]
             if bins is not None:
@@ -86,17 +99,20 @@ def fd_optimal_bins(D: np.ndarray):
     return nbins
 
 def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplots=True):
+    #TODO: fix bug: if subplots=False it show an empty plot in the end
+
     plots_per_row = D.shape[0]
     
-    # TODO: dynamic specification of size of the figure (it is plotted really bad)
-    plt.figure(layout="tight", figsize=(20,15), dpi=200)
+    screen_width, screen_height = get_screen_size()
+    dpi = 50
+    plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
     for i in range(D.shape[0]):
         for j in range(D.shape[0]):
             if subplots:
                 pos = plots_per_row*i+j+1
                 plt.subplot(plots_per_row, plots_per_row, pos)
             else:
-                plt.figure()
+                plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
             for key, value in label_dict.items():
                 filtered_D_i = D[i, L==value]
                 if i == j:
