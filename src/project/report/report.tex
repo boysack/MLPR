@@ -1,14 +1,32 @@
 
 \documentclass[twocolumn]{article}
 \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{imakeidx}
+
+\lstset{
+    language=Python, % Set the programming language
+    basicstyle=\ttfamily\tiny, % Set the font style for the code
+    keywordstyle=\color{blue}, % Set the keyword color
+    commentstyle=\color{green!60!black}, % Set the comment color
+    stringstyle=\color{red}, % Set the string color
+    showstringspaces=false, % Do not emphasize spaces in strings
+    breaklines=true, % Enable line breaks
+    breakatwhitespace=true, % Enable line breaks only at whitespace
+    tabsize=4, % Set tab size
+    linewidth=1.2\linewidth
+}
+
 
 \title{Machine Learning and Pattern Recognition: final report}
 \author{Claudio Macaluso, s317149}
 
+\makeindex
 \begin{document}
 
 \maketitle
 
 \input{lab02/lab02.tex}
-
+\printindex
 \end{document}

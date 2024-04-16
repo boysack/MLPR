@@ -1,12 +1,27 @@
 import numpy as np
+from numpy import ndarray
 import os
 import matplotlib.pyplot as plt
 from math import ceil, sqrt
 from screeninfo import get_monitors
+import scipy
 
-def load(filename: str, delimiter: str = ","):
+def load(filename: str, delimiter: str = ",") -> tuple[ndarray, ndarray, dict]:
+    # TODO: check if it's convenient to return even an inversed version of label_dictionary
+    """
+    Load the dataset from a file.
+
+    Parameters:
+    filename (str): filename from which extract the data.
+    delimiter (str): delimiter used in the file to separate the data values.
+
+    Returns:
+    ndarray: the dataset (sample = column vector).
+    ndarray: the labels.
+    dict: the labels dictionary.
+    """
     if not os.path.isfile(filename):
-        raise Exception("File doesn't exists!")
+        raise Exception("Must insert a valid filename")
     # used to create label dictionary
     label_index = 0
     label_dict = {}
@@ -43,13 +58,31 @@ def load(filename: str, delimiter: str = ","):
 
     return D, L, label_dict
 
-def col(x):
+def col(x: ndarray) -> ndarray:
+    """
+    Return the column vector of the given one.
+
+    Parameters:
+    x (ndarray): the vector to transform.
+
+    Returns:
+    ndarray: the column vector.
+    """
     if len(x.shape) == 2 and x.shape[1] == 1:
         return x
     else:
         return x.reshape(-1, 1)
     
 def row(x):
+    """
+    Return the row vector of the given one.
+
+    Parameters:
+    x (ndarray): the vector to transform.
+
+    Returns:
+    ndarray: the row vector.
+    """
     if len(x.shape) == 2 and x.shape[0] == 1:
         return x
     else:
@@ -88,7 +121,7 @@ def hist_per_feat(D, L, label_dict, bins=None, subplots=True):
         # TODO: add features name label if provided
         #plt.xlabel("")
 
-def fd_optimal_bins(D: np.ndarray):
+def fd_optimal_bins(D: ndarray):
     if D.ndim != 1:
         raise Exception("Wrong dimension number!")
     n = D.size
@@ -121,26 +154,196 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
                     else:
                         b = fd_optimal_bins((filtered_D_i).flatten())
                     plt.hist(filtered_D_i, bins=b, alpha=0.5, label=key, density=True)
-                    if feature_dict:
-                        plt.xlabel(feature_dict[i])
                 else:
                     filtered_D_j = D[j, L==value]
-                    plt.scatter(filtered_D_i, filtered_D_j, s=5)
-                    # TODO: if features_dict is present, use it for this
-                    if feature_dict:
-                        plt.xlabel(feature_dict[i])
-                        plt.ylabel(feature_dict[j])
+                    plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5)
             plt.legend(loc='upper right')
 
-def mean(D):
-    return col(D.mean(axis=1))
+# TODO: CHECK IF NECESSARY TO CHECK IF THE DATASET IS NONE
+# actually, the parameter is mandatory, so is probably useless to check if it's none since it will be checked atuomatically
+def mean(D: ndarray) -> ndarray:
+    """
+    Calculate mean vector of the dataset.
 
-def center_data(D, mu=None):
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+
+    Returns:
+    ndarray: the mean column vector.
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
+    return col(D.sum(axis=1)/D.shape[1])
+
+def var(D: ndarray) -> ndarray:
+    """
+    Calculate variance vector of the dataset.
+
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+
+    Returns:
+    ndarray: the variance column vector.
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
+    return col(((D - (col(D.sum(axis=1)/D.shape[1])))**2).sum(axis=1)/D.shape[1])
+
+def cov(D: ndarray, mu: ndarray = None ) -> ndarray:
+    """
+    Calculate covariance matrix of the dataset.
+
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+    mu (ndarray): the mean vector.
+
+    Returns:
+    ndarray: the covariance matrix.
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
+    if mu is None:
+        mu = mean(D)
+    else:
+        mu = col(mu)
+    Dc = D - mu
+
+    return np.dot(Dc, Dc.T)/D.shape[1]
+
+def center_data(D: ndarray, mu: ndarray = None) -> ndarray:
+    """
+    Calculate the mean centered data.
+
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+    mu (ndarray): the mean vector.
+
+    Returns:
+    ndarray: the centered data.
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
     if mu is None:
         mu = mean(D)
     else:
         mu = col(mu)
     return D - mu
 
-def var(D):
-    return col(D.var(axis=1))
+def pca(D: ndarray, C: ndarray = None, m : int = 1) -> tuple[ndarray, ndarray]:
+    """
+    Calculate the specified Principal Components and project the data along the found directions.
+
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+    C (ndarray): the covariance matrix. If not specified, will be calculated internally.
+    m (int): the number of components you want to find. It must be a number included in the interval [1, n_features]). Default to 1.
+
+    Returns:
+    ndarray: the found Principal Components.
+    ndarray: the projected data along the Principal Components.
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
+    if m < 1 or m > D.shape[0]:
+        raise Exception(f"You're trying to extract {m} principal component (1 <= m <= {D.shape[0]})")
+    if C is None:
+        #C = np.cov(D)
+        C = cov(D)
+    _, U = np.linalg.eigh(C)
+    P = U[:, ::-1][:, :m]
+    
+    return P, np.dot(P.T, D)
+
+def sb(D: ndarray, L: ndarray) -> ndarray:
+    """
+    Calculate between class covariance
+
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+    D (ndarray): the labels.
+
+    Returns:
+    ndarray: the between class covariance matrix
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
+    if L is None:
+        raise Exception("Must insert labels as argument")
+    classes = np.unique(L)
+    sum = 0
+    mu = mean(D)
+    for c in classes:
+        D_c = D[:, L==c]
+        mu_c = mean(D_c)
+        len_c = D_c.shape[1]
+        d_c = mu_c - mu
+        sum += len_c * (np.dot(d_c, d_c.T))
+    
+    return sum/D.shape[1]
+
+def sw(D: ndarray, L: ndarray) -> ndarray:
+    """
+    Calculate within class covariance
+
+    Parameters:
+    D (ndarray): the dataset (sample = column vector).
+    D (ndarray): the labels.
+
+    Returns:
+    ndarray: the within class covariance matrix
+    """
+    if D is None:
+        raise Exception("Must insert dataset as argument")
+    if L is None:
+        raise Exception("Must insert labels as argument")
+    classes = np.unique(L)
+    sum = 0
+    for c in classes:
+        D_c = D[:, L==c]
+        mu_c = mean(D_c)
+        D_c_centered = D_c - mu_c
+        sum += np.dot(D_c_centered, D_c_centered.T)
+        # sum += D_c.shape[1] * np.cov(D_c)
+    
+    return sum/D.shape[1]
+
+def lda(D, L, m):
+    n_classes = np.unique(L).size
+    if m < 1 or m > (n_classes-1):
+        raise Exception(f"You're trying to extract {m} directions (1 <= m <= {n_classes-1})")
+    # can probably optimize, but is already fast
+    Sb = sb(D, L)
+    Sw = sw(D, L)
+    _, U = scipy.linalg.eigh(Sb, Sw)
+    W = U[:, ::-1][:, :m]
+
+    return W, np.dot(W.T, D)
+
+def cov(D, mu=None):
+    if mu is None:
+        mu = mean(D)
+    else:
+        mu = col(mu)
+    Dc = D - mu
+
+    return np.dot(Dc, Dc.T)/D.shape[1]
+
+def split_db_2to1(D, L, seed=0):
+    nTrain = int(D.shape[1]*2.0/3.0)
+    np.random.seed(seed)
+    idx = np.random.permutation(D.shape[1])
+    idxTrain = idx[0:nTrain]
+    idxTest = idx[nTrain:]
+
+    DTR = D[:, idxTrain]
+    DVAL = D[:, idxTest]
+    LTR = L[idxTrain]
+    LVAL = L[idxTest]
+
+    return (DTR, LTR), (DVAL, LVAL)
+
+def trunc(values, decs=0):
+    """
+    Used to truncate values precision to perform comparison of numpy arrays calculated using different techniques, and so having slightly different results
+    """
+    return np.trunc(values*10**decs)/(10**decs)
