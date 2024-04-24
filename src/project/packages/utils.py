@@ -229,7 +229,7 @@ def center_data(D: ndarray, mu: ndarray = None) -> ndarray:
         mu = col(mu)
     return D - mu
 
-def pca(D: ndarray, C: ndarray = None, m : int = 1) -> tuple[ndarray, ndarray]:
+def pca(D: ndarray, C: ndarray = None, m: int = 1, change_sign: bool = False) -> tuple[ndarray, ndarray]:
     """
     Calculate the specified Principal Components and project the data along the found directions.
 
@@ -251,6 +251,9 @@ def pca(D: ndarray, C: ndarray = None, m : int = 1) -> tuple[ndarray, ndarray]:
         C = cov(D)
     _, U = np.linalg.eigh(C)
     P = U[:, ::-1][:, :m]
+
+    if change_sign:
+        P *= -1
     
     return P, np.dot(P.T, D)
 
@@ -307,7 +310,7 @@ def sw(D: ndarray, L: ndarray) -> ndarray:
     
     return sum/D.shape[1]
 
-def lda(D, L, m):
+def lda(D: ndarray, L: ndarray, m: int = 1, change_sign: bool = False) -> tuple[ndarray, ndarray]:
     n_classes = np.unique(L).size
     if m < 1 or m > (n_classes-1):
         raise Exception(f"You're trying to extract {m} directions (1 <= m <= {n_classes-1})")
@@ -316,6 +319,9 @@ def lda(D, L, m):
     Sw = sw(D, L)
     _, U = scipy.linalg.eigh(Sb, Sw)
     W = U[:, ::-1][:, :m]
+
+    if change_sign:
+        W *= -1
 
     return W, np.dot(W.T, D)
 

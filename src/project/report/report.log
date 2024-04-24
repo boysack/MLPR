@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.11.23)  16 APR 2024 21:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.11.23)  23 APR 2024 14:50
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -77,103 +77,91 @@ Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1368.
 Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1369.
 Package xcolor Info: Model `Gray' substituted by `gray' on input line 1370.
 Package xcolor Info: Model `wave' substituted by `hsb' on input line 1371.
-) (/usr/local/texlive/2021/texmf-dist/tex/latex/imakeidx/imakeidx.sty
-Package: imakeidx 2016/10/15 v1.3e Package for typesetting indices in a synchronous mode
- (/usr/local/texlive/2021/texmf-dist/tex/latex/xkeyval/xkeyval.sty
-Package: xkeyval 2020/11/20 v2.8 package option processing (HA)
- (/usr/local/texlive/2021/texmf-dist/tex/generic/xkeyval/xkeyval.tex (/usr/local/texlive/2021/texmf-dist/tex/generic/xkeyval/xkvutils.tex
-\XKV@toks=\toks17
-\XKV@tempa@toks=\toks18
-)
-\XKV@depth=\count195
-File: xkeyval.tex 2014/12/03 v2.7a key=value parser (HA)
-)) (/usr/local/texlive/2021/texmf-dist/tex/generic/iftex/ifxetex.sty
-Package: ifxetex 2019/10/25 v0.7 ifxetex legacy package. Use iftex instead.
- (/usr/local/texlive/2021/texmf-dist/tex/generic/iftex/iftex.sty
-Package: iftex 2020/03/06 v1.0d TeX engine tests
-)) (/usr/local/texlive/2021/texmf-dist/tex/generic/iftex/ifluatex.sty
-Package: ifluatex 2019/10/25 v1.5 ifluatex legacy package. Use iftex instead.
-)) (/usr/local/texlive/2021/texmf-dist/tex/latex/listings/lstlang1.sty
+) (/usr/local/texlive/2021/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2020/03/24 1.8d listings language file
-)
-\report@idxfile=\write3
-\openout3 = `report.idx'.
-
-
-Writing index file report.idx
-(/usr/local/texlive/2021/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+) (/usr/local/texlive/2021/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2021-03-18 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count196
+\l__color_backend_stack_int=\count195
 \l__pdf_internal_box=\box49
 ) (/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/report.aux)
 \openout1 = `report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
  (/usr/local/texlive/2021/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count197
+\scratchcounter=\count196
 \scratchdimen=\dimen145
 \scratchbox=\box50
-\nofMPsegments=\count198
-\nofMParguments=\count199
-\everyMPshowfont=\toks19
-\MPscratchCnt=\count266
+\nofMPsegments=\count197
+\nofMParguments=\count198
+\everyMPshowfont=\toks17
+\MPscratchCnt=\count199
 \MPscratchDim=\dimen146
-\MPnumerator=\count267
-\makeMPintoPDFobject=\count268
-\everyMPtoPDFconversion=\toks20
+\MPnumerator=\count266
+\makeMPintoPDFobject=\count267
+\everyMPtoPDFconversion=\toks18
 ) (/usr/local/texlive/2021/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/usr/local/texlive/2021/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-\c@lstlisting=\count269
+\c@lstlisting=\count268
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 28.
+(Font)              <12> on input line 25.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 28.
+(Font)              <8> on input line 25.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 28.
+(Font)              <6> on input line 25.
  (/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/lab02/lab02.tex
-<lab02/scatter.png, id=1, 1445.4pt x 1084.05pt>
-File: lab02/scatter.png Graphic file (type png)
-<use lab02/scatter.png>
-Package pdftex.def Info: lab02/scatter.png  used on input line 54.
+<lab02/original_data_scatter_matrix.png, id=1, 1445.4pt x 1084.05pt>
+File: lab02/original_data_scatter_matrix.png Graphic file (type png)
+<use lab02/original_data_scatter_matrix.png>
+Package pdftex.def Info: lab02/original_data_scatter_matrix.png  used on input line 54.
 (pdftex.def)             Requested size: 206.5486pt x 154.9088pt.
+) (/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/lab03/lab03.tex
+<lab03/PCA_6_scatter_matrix.png, id=3, 2081.376pt x 1250.271pt>
+File: lab03/PCA_6_scatter_matrix.png Graphic file (type png)
+<use lab03/PCA_6_scatter_matrix.png>
+Package pdftex.def Info: lab03/PCA_6_scatter_matrix.png  used on input line 7.
+(pdftex.def)             Requested size: 206.5486pt x 124.06146pt.
+<lab03/LDA_1_scatter_matrix.png, id=4, 2081.376pt x 1250.271pt>
+File: lab03/LDA_1_scatter_matrix.png Graphic file (type png)
+<use lab03/LDA_1_scatter_matrix.png>
+Package pdftex.def Info: lab03/LDA_1_scatter_matrix.png  used on input line 14.
+(pdftex.def)             Requested size: 206.5486pt x 124.06146pt.
 ) [1{/usr/local/texlive/2021/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
- </Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/lab02/scatter.png>]
-runsystem(makeindex report.idx)...executed safely (allowed).
+ </Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/lab02/original_data_scatter_matrix.png>] [2
 
- (/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/report.ind) (/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/report.aux) ) 
+ </Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/lab03/PCA_6_scatter_matrix.png> </Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/lab03/LDA_1_scatter_matrix.png>] (/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/report.aux) ) 
 Here is how much of TeX's memory you used:
- 3882 strings out of 478994
- 54628 string characters out of 5858183
- 555265 words of memory out of 5000000
- 21348 multiletter control sequences out of 15000+600000
+ 3472 strings out of 478994
+ 48656 string characters out of 5858183
+ 548700 words of memory out of 5000000
+ 20957 multiletter control sequences out of 15000+600000
  407406 words of font info for 41 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  68i,8n,74p,307b,1332s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
-Output written on "/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/report.pdf" (1 page, 1075232 bytes).
+Output written on "/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/report/report.pdf" (2 pages, 1430192 bytes).
 PDF statistics:
- 31 PDF objects out of 1000 (max. 8388607)
- 20 compressed objects within 1 object stream
+ 38 PDF objects out of 1000 (max. 8388607)
+ 22 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 

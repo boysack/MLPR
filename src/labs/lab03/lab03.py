@@ -126,9 +126,25 @@ def trunc(values, decs=0):
 
 if __name__=="__main__":
     D, L, label_dict = load("labs/data/iris.csv")
-    #print(mean(D))
-    # result slightly different from professor one.
-    #print(np.cov(D))
+
+    D = D[:2,:]
+    P_m2, D_pca_m2 = pca(D, m=2)
+    W_m2, D_lda_m2 = lda(D, L, m=2)
+
+    plt.figure()
+    for label_str, label_int in label_dict.items():
+        plt.scatter(D_pca_m2[0, L==label_int], D_pca_m2[1, L==label_int])
+
+    plt.figure()
+    for label_str, label_int in label_dict.items():
+        plt.scatter(D_lda_m2[0, L==label_int], D_lda_m2[1, L==label_int])
+
+    plt.show()
+
+    """ print("mean vector")
+    print(mean(D))
+    print("covariance matrix")
+    print(cov(D))
 
     # PCA - OK
     P_m4, D_m4 = pca(D, m=4)
@@ -136,21 +152,38 @@ if __name__=="__main__":
 
     print("testing PCA")
     print((trunc(P_m4, decs=2)==trunc(SP_m4, decs=2)))
+    plt.figure()
+    for k, l in label_dict.items():
+        plt.scatter(D_m4[0, :][L==l], D_m4[1, :][L==l], label=k)
+    plt.title("PCA")
 
     # LDA - OK
+    print("Sb")
+    Sb = sb(D, L)
+    print(Sb)
+    print("Sw")
+    Sw = sw(D, L)
+    print(Sw)
+
     W_m2, D_m2 = lda(D, L, m=2)
     SL_m2 = np.load("labs/lab03/Solution/IRIS_LDA_matrix_m2.npy")
 
     print("testing LDA")
     print((trunc(W_m2, decs=2)==trunc(SL_m2, decs=2)))
+    plt.figure()
+    for k, l in label_dict.items():
+        plt.scatter(D_m2[0, :][L==l], D_m2[1, :][L==l], label=k)
+    plt.title("LDA")
 
-    """ hist_per_feat(D_m4, L, label_dict)
-    hist_per_feat(D_m2, L, label_dict)
-    plt.show() """
+    hist_per_feat(D_m4[0,:].reshape(1,-1), L, label_dict)
+    plt.title("PCA")
+    hist_per_feat(D_m2[0,:].reshape(1,-1), L, label_dict)
+    plt.title("LDA")
+
+    # plt.show()
 
     D = D[:,(L==label_dict["Iris-versicolor"]) | (L==label_dict["Iris-virginica"])]
     L = L[(L==label_dict["Iris-versicolor"]) | (L==label_dict["Iris-virginica"])]
-    print(label_dict)
     label_dict.pop("Iris-setosa")
 
     (DTR, LTR), (DVAL, LVAL) = split_db_2to1(D, L)
@@ -161,7 +194,7 @@ if __name__=="__main__":
 
     hist_per_feat(DTR_m1, LTR, label_dict, bins=5)
     hist_per_feat(DVAL_m1, LVAL, label_dict, bins=5)
-    plt.show()
+    # plt.show()
 
     threshold = (DTR_m1[0, LTR==1].mean() + DTR_m1[0, LTR==2].mean()) / 2.0
     PVAL = np.zeros(shape=LVAL.shape, dtype=np.int32)
@@ -178,7 +211,7 @@ if __name__=="__main__":
 
     hist_per_feat(DTR_m1, LTR, label_dict, bins=5)
     hist_per_feat(DVAL_m1, LVAL, label_dict, bins=5)
-    plt.show()
+    # plt.show()
 
     threshold = (DTR_m1[0, LTR==1].mean() + DTR_m1[0, LTR==2].mean()) / 2.0
     PVAL = np.zeros(shape=LVAL.shape, dtype=np.int32)
@@ -197,7 +230,7 @@ if __name__=="__main__":
 
     hist_per_feat(DTR_pca_m2_lda_m1, LTR, label_dict, bins=5)
     hist_per_feat(DVAL_pca_m2_lda_m1, LVAL, label_dict, bins=5)
-    plt.show()
+    # plt.show()
 
     threshold = (DTR_pca_m2_lda_m1[0, LTR==1].mean() + DTR_pca_m2_lda_m1[0, LTR==2].mean()) / 2.0
     PVAL = np.zeros(shape=LVAL.shape, dtype=np.int32)
@@ -214,7 +247,7 @@ if __name__=="__main__":
 
     hist_per_feat(DTR_pca_m3_lda_m1, LTR, label_dict, bins=5)
     hist_per_feat(DVAL_pca_m3_lda_m1, LVAL, label_dict, bins=5)
-    plt.show()
+    # plt.show()
 
     threshold = (DTR_pca_m3_lda_m1[0, LTR==1].mean() + DTR_pca_m3_lda_m1[0, LTR==2].mean()) / 2.0
     PVAL = np.zeros(shape=LVAL.shape, dtype=np.int32)
@@ -222,3 +255,20 @@ if __name__=="__main__":
     PVAL[DVAL_pca_m3_lda_m1[0] < threshold] = 1
 
     print(f"accuracy for PCA(3) + LDA(1) calssification: {LVAL.shape[0]-(PVAL==LVAL).sum()}")
+
+
+    # PCA - classification without change in sign - OK
+    print("PCA - classification without change in sign")
+    PTR_m1, DTR_m1 = pca(DTR, m=1)
+    DVAL_m1 = np.dot(PTR_m1.T, DVAL)
+
+    hist_per_feat(DTR_m1, LTR, label_dict, bins=5)
+    hist_per_feat(DVAL_m1, LVAL, label_dict, bins=5)
+    # plt.show()
+
+    threshold = (DTR_m1[0, LTR==1].mean() + DTR_m1[0, LTR==2].mean()) / 2.0
+    PVAL = np.zeros(shape=LVAL.shape, dtype=np.int32)
+    PVAL[DVAL_m1[0] >= threshold] = 1
+    PVAL[DVAL_m1[0] < threshold] = 2
+
+    print(f"accuracy for PCA(3) + LDA(1) calssification: {LVAL.shape[0]-(PVAL==LVAL).sum()}") """
