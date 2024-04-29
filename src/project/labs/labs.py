@@ -37,14 +37,14 @@ def lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL):
     P_pca_m6, V_pca_m6, D_pca_m6 = pca(D, m=6)
     # plot scatter matrix of projected data
     scatter_hist_per_feat(D_pca_m6, L, label_dict)
-    plt.show()
+    #plt.show()
     plt.savefig("/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/plots/PCA_6_scatter_matrix.png")
 
     # find 1 (max) discriminant direction using LDA and project data
     W_lda_m1, D_lda_m1 = lda(D, L, m=1)
     # plot scatter matrix of projected data
     scatter_hist_per_feat(D_lda_m1, L, label_dict)
-    plt.show()
+    #plt.show()
     plt.savefig("/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/plots/LDA_1_scatter_matrix.png")
 
 
