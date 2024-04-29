@@ -8,11 +8,11 @@ if __name__=="__main__":
 
     # LAB 2 - features visualization
 
-    lab02(D, L, label_dict)
+    #lab02(D, L, label_dict)
     
     # LAB 3 - pca, lda
     
-    #lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL)
+    lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL)
 
     # LAB 4 - gaussian model
 
