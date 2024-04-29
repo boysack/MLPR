@@ -156,7 +156,7 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
                     plt.hist(filtered_D_i, bins=b, alpha=0.5, label=key, density=True)
                 else:
                     filtered_D_j = D[j, L==value]
-                    plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5)
+                    plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5, alpha=.5)
             plt.legend(loc='upper right')
 
 # TODO: CHECK IF NECESSARY TO CHECK IF THE DATASET IS NONE
@@ -249,13 +249,15 @@ def pca(D: ndarray, C: ndarray = None, m: int = 1, change_sign: bool = False) ->
     if C is None:
         #C = np.cov(D)
         C = cov(D)
-    _, U = np.linalg.eigh(C)
+    eigvals, U = np.linalg.eigh(C)
+
     P = U[:, ::-1][:, :m]
+    V = eigvals[::-1][:m]
 
     if change_sign:
         P *= -1
     
-    return P, np.dot(P.T, D)
+    return P, V, np.dot(P.T, D)
 
 def sb(D: ndarray, L: ndarray) -> ndarray:
     """
@@ -353,3 +355,18 @@ def trunc(values, decs=0):
     Used to truncate values precision to perform comparison of numpy arrays calculated using different techniques, and so having slightly different results
     """
     return np.trunc(values*10**decs)/(10**decs)
+
+def logpdf_GAU_ND(x, mu = None, C = None):
+    if np.isscalar(C):
+        logdet = np.log(C)
+        inv = 1/C
+    else:
+        logdet = np.linalg.slogdet(C)[1]
+        inv = np.linalg.inv(C)
+    M = x.shape[0]
+    x_c = x - mu
+    # fix the fact that C could be even a scalar
+    return -(M/2) * np.log(2*np.pi) - .5 * logdet - .5 * (np.dot(x_c.T, inv).T * x_c).sum(0)
+
+def loglikelihood(X, mu, C):
+    return logpdf_GAU_ND(X, mu, C).sum()
