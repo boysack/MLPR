@@ -356,6 +356,9 @@ def trunc(values, decs=0):
     """
     return np.trunc(values*10**decs)/(10**decs)
 
+# TODO: change x in D (since it works for a whole dataset)
+# TODO: find a way to apply the same calculation if there's a series of parameters (means and covariance matrices). In this way
+    # externally can be applied the logpdf_GAU_ND without any for loop for each parameter member
 def logpdf_GAU_ND(x, mu = None, C = None):
     if np.isscalar(C):
         logdet = np.log(C)
