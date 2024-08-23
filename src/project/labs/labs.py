@@ -1,4 +1,7 @@
-from packages.utils import *
+from modules.utils.operations import *
+from modules.visualization.plots import *
+from modules.models.gaussians import logpdf_GAU_ND
+from modules.features.dimensionality_reduction import lda, pca
 
 def lab02(D, L, label_dict):
     scatter_hist_per_feat(D, L, label_dict)

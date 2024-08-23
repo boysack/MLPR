@@ -1,4 +1,11 @@
-from project.packages.utils import *
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from modules.visualization.plots import *
+from modules.data.dataset import *
+from modules.utils.operations import *
+
 import numpy as np
 from numpy import ndarray
 import matplotlib.pyplot as plt
