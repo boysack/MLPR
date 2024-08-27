@@ -134,7 +134,7 @@ def trunc(values, decs=0):
 if __name__=="__main__":
     D, L, label_dict = load("labs/data/iris.csv")
 
-    D = D[:2,:]
+    #D = D[:2,:]
     P_m2, D_pca_m2 = pca(D, m=2)
     W_m2, D_lda_m2 = lda(D, L, m=2)
 

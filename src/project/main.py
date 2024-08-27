@@ -1,6 +1,6 @@
 import setup
 from modules.data.dataset import *
-from labs.labs import lab02, lab03, lab04
+from labs.labs import lab02, lab03, lab04, lab05
 
 if __name__=="__main__":
 
@@ -17,8 +17,9 @@ if __name__=="__main__":
 
     # LAB 4 - multivariate gaussian density
 
-    #lab04(D, L, label_dict)
+    #lab04(DTR, LTR, label_dict)
 
     # LAB 5 - multivariate gaussian classifiers
 
+    #lab05(DTR, LTR, DVAL, LVAL, label_dict)
 

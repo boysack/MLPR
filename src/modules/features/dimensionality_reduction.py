@@ -14,6 +14,7 @@ def pca(D: ndarray, C: ndarray = None, m: int = 1, change_sign: bool = False) ->
 
     Returns:
     ndarray: the found Principal Components.
+    ndarray: the found eigenvalues (i.e. variances of projected points).
     ndarray: the projected data along the Principal Components.
     """
     if m < 1 or m > D.shape[0]:
@@ -24,7 +25,7 @@ def pca(D: ndarray, C: ndarray = None, m: int = 1, change_sign: bool = False) ->
     eigvals, U = np.linalg.eigh(C)
 
     P = U[:, ::-1][:, :m]
-    V = eigvals[::-1][:m]
+    V = eigvals[::-1]
 
     if change_sign:
         P *= -1

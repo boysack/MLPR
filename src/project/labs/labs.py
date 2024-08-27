@@ -1,7 +1,9 @@
 from modules.utils.operations import *
 from modules.visualization.plots import *
-from modules.models.gaussians import logpdf_GAU_ND
+from modules.models.gaussians import logpdf_GAU_ND, MVGModel, TiedGModel, NaiveGModel, error_rate
+from modules.models.mean_classifier import LdaBinaryClassifier
 from modules.features.dimensionality_reduction import lda, pca
+import numpy as np
 
 def lab02(D, L, label_dict):
     scatter_hist_per_feat(D, L, label_dict)
@@ -167,3 +169,191 @@ def lab04(D, L, label_dict):
 
     plt.show()
     #plt.savefig("/Users/claudio/Documents/turin/polito/anno I/semestre II/mlpr/2324/git/MLPR/src/project/plots/UGM_histograms_per_features.png")
+
+def lab05(DTR, LTR, DTE, LTE, label_dict):
+    # set manually priors
+    priors = np.array([0.5, 0.5])
+    l_priors = np.log(priors)
+
+    mvg = MVGModel(DTR, LTR, label_dict, l_priors)
+    mvg.fit()
+    mvg_p, _ = mvg.predict(DTE)
+
+    ng = NaiveGModel(DTR, LTR, label_dict, l_priors)
+    ng.fit()
+    ng_p, _ = ng.predict(DTE)
+
+    tg = TiedGModel(DTR, LTR, label_dict, l_priors)
+    tg.fit()
+    tg_p, _ = tg.predict(DTE)
+
+    ldac = LdaBinaryClassifier(DTR, LTR, label_dict)
+    ldac.fit()
+    ldac_p = ldac.predict(DTE)
+
+    print("#####################################")
+    print("############ ALL FEATURES ###########")
+    print("#####################################\n")
+
+    print(f"MULTIVARIATE GAUSSIAN MODEL {error_rate(LTE, mvg_p)*100:0.2f}")
+    print(f"NAIVE GAUSSIAN MODEL {error_rate(LTE, ng_p)*100:0.2f}")
+    print(f"TIED GAUSSIAN MODEL {error_rate(LTE, tg_p)*100:0.2f}")
+    print()
+    #print(f"LDA BINARY CLASSIFIER {error_rate(LTE, ldac_p)*100:0.2f}")
+
+    """ 
+    p_max_val = {}
+    with np.printoptions(suppress=True, formatter={'float': '{:0.5f}'.format}, linewidth=100):    
+        for label_int in label_dict.values():
+            print(f"CLASS {label_int} PARAMETERS")
+            print("Mean")
+            print(mvg.parameters[label_int][0])
+            print("Covariance matrix")
+            print(mvg.parameters[label_int][1])
+            print("Pearson correlation coefficient")
+            p_corr_m = p_corr(mvg.parameters[label_int][1])
+            print(p_corr_m, end="\n\n")
+
+            np.fill_diagonal(p_corr_m, 0)
+            max_cols = np.argmax(p_corr_m, axis=1)
+            row = np.argmax(np.array([p_corr_m[row, col] for row, col in enumerate(max_cols)]))
+            col = max_cols[row]
+
+            p_max_idx = (row, col)
+
+            p_max_val[label_int] = (p_corr_m[row, col], p_max_idx)
+
+    print(p_max_val, end="\n\n")
+
+    print("##### REMOVE LAST TWO FEATURES ######")
+    print("(Gaussian assumption poorly satisfied)")
+
+    DTR_red = DTR[:-2,:]
+    DTE_red = DTE[:-2,:]
+    mvg = MVGModel(DTR_red, LTR, label_dict, l_priors)
+    mvg.fit()
+    mvg_p, _ = mvg.predict(DTE_red)
+
+    ng = NaiveGModel(DTR_red, LTR, label_dict, l_priors)
+    ng.fit()
+    ng_p, _ = ng.predict(DTE_red)
+
+    tg = TiedGModel(DTR_red, LTR, label_dict, l_priors)
+    tg.fit()
+    tg_p, _ = tg.predict(DTE_red)
+
+    ldac = LdaBinaryClassifier(DTR_red, LTR, label_dict)
+    ldac.fit()
+    ldac_p = ldac.predict(DTE_red)
+
+    print("#### MULTIVARIATE GAUSSIAN MODEL ####")
+    print(error_rate(LTE, mvg_p)*100, end="\n\n")
+    # +0.95
+    print("######## NAIVE GAUSSIAN MODEL #######")
+    print(error_rate(LTE, ng_p)*100, end="\n\n")
+    # +0.45
+    print("######## TIED GAUSSIAN MODEL ########")
+    print(error_rate(LTE, tg_p)*100, end="\n\n")
+    # +0.20
+    print("####### LDA BINARY CLASSIFIER #######")
+    print(error_rate(LTE, ldac_p)*100, end="\n\n")
+
+    # Naive Bayes outperforms Multivariate, probably due to robustness to small datasets (can lead to overfitting if parameters are too much)
+    # Tied degradates less than the other, but still perform worse (9.5 vs ~7.5)
+
+    print("##### KEEP FIRST TWO FEATURES ######")
+    print("(similar means, different variance)")
+
+    DTR_red = DTR[:2,:]
+    DTE_red = DTE[:2,:]
+
+    mvg = MVGModel(DTR_red, LTR, label_dict, l_priors)
+    mvg.fit()
+    mvg_p, _ = mvg.predict(DTE_red)
+
+    tg = TiedGModel(DTR_red, LTR, label_dict, l_priors)
+    tg.fit()
+    tg_p, _ = tg.predict(DTE_red)
+
+    print("#### MULTIVARIATE GAUSSIAN MODEL ####")
+    print(error_rate(LTE, mvg_p)*100, end="\n\n")
+    print("######## TIED GAUSSIAN MODEL ########")
+    print(error_rate(LTE, tg_p)*100, end="\n\n")
+
+    # BAD BAD, multivariate bad, tied really worse (class gaussians are really overlapped [see saved plot])
+
+    print("##### KEEP 3 AND 4 FEATURES ######")
+    print("(different means, similar variance)")
+
+    DTR_red = DTR[2:4,:]
+    DTE_red = DTE[2:4,:]
+    
+    mvg = MVGModel(DTR_red, LTR, label_dict, l_priors)
+    mvg.fit()
+    mvg_p, _ = mvg.predict(DTE_red)
+
+    tg = TiedGModel(DTR_red, LTR, label_dict, l_priors)
+    tg.fit()
+    tg_p, _ = tg.predict(DTE_red)
+
+    print("#### MULTIVARIATE GAUSSIAN MODEL ####")
+    print(error_rate(LTE, mvg_p)*100, end="\n\n")
+    print("######## TIED GAUSSIAN MODEL ########")
+    print(error_rate(LTE, tg_p)*100, end="\n\n")
+
+    # JUST USING 3 AND 4 AS FEATURES PERFORMANCES DEGRADATES JUST OF 2%, BESIDES TIED PERFORM EVEN
+    # BETTER THAN MULTIVARIATE (9.45 mvg, 9.4 tied) """
+
+    C = cov(DTR)
+    for m in range(1, DTR.shape[0]+1)[::-1]:
+        print("#####################################")
+        print(f"############# PCA m = {m} #############")
+        print("#####################################\n")
+        P, V, DTR_m = pca(DTR, C, m=m)
+        print(f"Explained variance {V[:m].sum()/V.sum()}")
+        DTE_m = np.dot(P.T, DTE)
+
+        mvg = MVGModel(DTR_m, LTR, label_dict, l_priors)
+        mvg.fit()
+        mvg_p, _ = mvg.predict(DTE_m)
+
+        ng = NaiveGModel(DTR_m, LTR, label_dict, l_priors)
+        ng.fit()
+        ng_p, _ = ng.predict(DTE_m)
+
+        tg = TiedGModel(DTR_m, LTR, label_dict, l_priors)
+        tg.fit()
+        tg_p, _ = tg.predict(DTE_m)
+
+        print(f"MULTIVARIATE GAUSSIAN MODEL {error_rate(LTE, mvg_p)*100:0.2f}")
+        print(f"NAIVE GAUSSIAN MODEL {error_rate(LTE, ng_p)*100:0.2f}")
+        print(f"TIED GAUSSIAN MODEL {error_rate(LTE, tg_p)*100:0.2f}\n")
+    
+    """ _, _, DTR_m = pca(DTR, C, m=6)
+    with np.printoptions(suppress=True, formatter={'float': '{:0.10f}'.format}, linewidth=100000):    
+        print(p_corr(cov(DTR_m))) """
+    
+    # found Principal Components are not correlated
+
+    print("#####################################")
+    print(f"############# LDA m = 1 #############")
+    print("#####################################\n")
+
+    W, DTR_m = lda(DTR, LTR)
+    DTE_m = np.dot(W.T, DTE)
+
+    mvg = MVGModel(DTR_m, LTR, label_dict, l_priors)
+    mvg.fit()
+    mvg_p, _ = mvg.predict(DTE_m)
+
+    ng = NaiveGModel(DTR_m, LTR, label_dict, l_priors)
+    ng.fit()
+    ng_p, _ = ng.predict(DTE_m)
+
+    tg = TiedGModel(DTR_m, LTR, label_dict, l_priors)
+    tg.fit()
+    tg_p, _ = tg.predict(DTE_m)
+
+    print(f"MULTIVARIATE GAUSSIAN MODEL {error_rate(LTE, mvg_p)*100:0.2f}")
+    print(f"NAIVE GAUSSIAN MODEL {error_rate(LTE, ng_p)*100:0.2f}")
+    print(f"TIED GAUSSIAN MODEL {error_rate(LTE, tg_p)*100:0.2f}\n")

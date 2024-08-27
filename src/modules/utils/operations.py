@@ -77,6 +77,9 @@ def cov(D: ndarray, mu: ndarray = None ) -> ndarray:
 
     return np.dot(Dc, Dc.T)/D.shape[1]
 
+def p_corr(C: ndarray):
+    return C / (col(C.diagonal()**0.5) * row(C.diagonal()**0.5))
+
 def center_data(D: ndarray, mu: ndarray = None) -> ndarray:
     """
     Calculate the mean centered data.
