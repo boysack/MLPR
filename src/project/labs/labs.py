@@ -1,6 +1,7 @@
 from modules.utils.operations import *
 from modules.visualization.plots import *
-from modules.models.gaussians import logpdf_GAU_ND, MVGModel, TiedGModel, NaiveGModel, error_rate
+from modules.utils.metrics import error_rate
+from modules.models.gaussians import logpdf_GAU_ND, MVGModel, TiedGModel, NaiveGModel
 from modules.models.mean_classifier import LdaBinaryClassifier
 from modules.features.dimensionality_reduction import lda, pca
 import numpy as np
@@ -70,16 +71,11 @@ def lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL):
     PVAL[(DVAL_lda_m1[0] >= threshold + shift)[0]] = 1
     PVAL[(DVAL_lda_m1[0] < threshold + shift)[0]] = 0
 
-    # count wrong labels
-    error_p = (LVAL!=PVAL).sum()
-    # calculate error rate
-    error_rate = error_p/LVAL.shape[0]
-
     # print results
     print("LDA 1")
     print(f"threshold = {threshold[0,0]}")
     print(f"shift = {shift} (sum to threshold)")
-    print(f"error rate = {error_rate}")
+    print(f"error rate = {error_rate(LVAL, PVAL)}")
 
     # use a shift for the found threshold
     shift = 1.511
@@ -89,16 +85,11 @@ def lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL):
     PVAL[(DVAL_lda_m1[0] >= threshold + shift)[0]] = 1
     PVAL[(DVAL_lda_m1[0] < threshold + shift)[0]] = 0
     
-    # count wrong labels
-    error_p = (LVAL!=PVAL).sum()
-    # calculate error rate
-    error_rate = error_p/LVAL.shape[0]
-
     # print results
     print("LDA 1")
     print(f"threshold = {threshold[0,0]}")
     print(f"shift = {shift} (sum to threshold)")
-    print(f"error rate = {error_rate}")
+    print(f"error rate = {error_rate(LVAL, PVAL)}")
     
 
     ###### PCA + LDA CLASSIFICATION ######
@@ -131,18 +122,13 @@ def lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL):
         PVAL = np.zeros(shape=LVAL.shape, dtype=np.int32)
         PVAL[(DVAL_lda_m1[0] >= threshold + shift)[0]] = 1
         PVAL[(DVAL_lda_m1[0] < threshold + shift)[0]] = 0
-        
-        # count wrong labels
-        error_p = (LVAL!=PVAL).sum()
-        # calculate error rate
-        error_rate = error_p/LVAL.shape[0]
 
         # print results
         print(f"PCA {m} + LDA 1")
         print(f"PCA explained variance = {V_pca_m6[:m].sum()/V_pca_m6.sum()}")
         print(f"threshold = {threshold[0,0]}")
         print(f"shift = {shift} (sum to threshold)")
-        print(f"error rate = {error_rate}")
+        print(f"error rate = {error_rate(LVAL, PVAL)}")
 
 def lab04(D, L, label_dict):
     # calculate mean and covariance

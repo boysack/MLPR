@@ -123,12 +123,6 @@ class TiedGModel(GaussianModel):
             parameters[label_int] = p
         self.parameters = parameters
 
-def error_rate(L, predictions):
-    wrong_p = (L!=predictions).sum()
-    error_rate = wrong_p/L.size
-    return error_rate
-
-
 # TODO: change x in D (since it works for a whole dataset)
 # TODO: find a way to apply the same calculation if there's a series of parameters (means and covariance matrices). In this way
     # externally can be applied the logpdf_GAU_ND without any for loop for each parameter member
