@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from math import ceil, sqrt
 from screeninfo import get_monitors
 
+from modules.utils.metrics import empirical_bayes_risk_binary, min_DCF_binary
+from modules.utils.operations import get_thresholds_from_llr
+
 def get_screen_size():
     primary_monitor = get_monitors()[0]
     screen_width = primary_monitor.width
@@ -74,3 +77,44 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
                     filtered_D_j = D[j, L==value]
                     plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5, alpha=.5)
             plt.legend(loc='upper right')
+
+def bayes_error_plot_binary(llr, L, label_dict, start, stop, num, model, plot_title = None):
+    eff_prior_log_odds = np.linspace(start, stop, num)
+    eff_priors = 1/(1+np.exp(-eff_prior_log_odds))
+    DCFs = []
+    minDCFs = []
+    scores = llr
+    for eff_prior in eff_priors:
+        model.set_threshold_from_priors_binary(eff_prior)
+        predictions = model.get_predictions(scores, bin=True)
+        DCFs.append(empirical_bayes_risk_binary(L, predictions, label_dict, eff_prior, model.cost_matrix))
+        P_fn, P_fp, t = get_thresholds_from_llr(scores, L)
+        minDCFs.append(min_DCF_binary(eff_prior, model.cost_matrix, P_fn=P_fn, P_fp=P_fp))
+    plt.plot(eff_prior_log_odds, DCFs, label='DCF')
+    plt.plot(eff_prior_log_odds, minDCFs, label='min DCF')
+    plt.xlabel(r'$\log \dfrac{\tilde{\pi}}{1-\tilde{\pi}}$')
+    plt.ylabel("DCF")
+
+    plt.xlim(start, stop)
+
+    ylow = min(DCFs + minDCFs)
+    ymax = max(DCFs + minDCFs)
+    ymin = ymax - (ymax - ylow)*4/3
+    plt.ylim(ymin, ymax)
+
+    plt.grid(True, linestyle=':')
+
+    if plot_title:
+        plt.title(plot_title)
+
+# TODO: check if it's convenient to do as in min_DCF_binary, i.e. to give the possibility to insert directly the scores and the labels and calculate the
+# P_fn and P_fp in place
+def roc(P_fn, P_fp, plot_title = None):
+    plt.plot(P_fp, 1-P_fn)
+    plt.xlabel('FPR')
+    plt.ylabel('TPR')
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.grid(True, linestyle=':')
+    if plot_title:
+        plt.title(plot_title)

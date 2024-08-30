@@ -103,3 +103,43 @@ def trunc(values, decs=0):
     Used to truncate values precision to perform comparison of numpy arrays calculated using different techniques, and so having slightly different results
     """
     return np.trunc(values*10**decs)/(10**decs)
+
+# TODO: understand if the method is specific for gaussian model
+def get_thresholds_from_llr(llr, L):
+    llr_sorter = np.argsort(llr)
+    llr = llr[llr_sorter]
+    L = L[llr_sorter]
+
+    P_fp = []
+    P_fn = []
+    
+    p = (L==1).sum()
+    n = (L==0).sum()
+    fp = n
+    fn = 0
+    
+    P_fp.append(fp / n)
+    P_fn.append(fn / p)
+
+    for idx in range(len(llr)):
+        # llr[idx] => new threshold (>true, <=false)
+        # (first it. -inf<x<=llr[0])
+        # think at it as adding 0 predictions, approaching to a threshold that is gt llr[idx]
+        if L[idx] == 1:
+            fn += 1
+        if L[idx] == 0:
+            fp -= 1
+        P_fp.append(fp / n)
+        P_fn.append(fn / p)
+    llr = np.concatenate([-np.array([np.inf]), llr])
+
+    P_fp_out = []
+    P_fn_out = []
+    thresholds_out = []
+    for idx in range(len(llr)):
+        if idx == len(llr) - 1 or llr[idx+1] != llr[idx]:
+            P_fp_out.append(P_fp[idx])
+            P_fn_out.append(P_fn[idx])
+            thresholds_out.append(llr[idx])
+
+    return np.array(P_fn_out), np.array(P_fp_out), np.array(thresholds_out)
