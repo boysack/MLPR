@@ -84,11 +84,11 @@ def bayes_error_plot_binary(llr, L, label_dict, start, stop, num, model, plot_ti
     DCFs = []
     minDCFs = []
     scores = llr
+    P_fn, P_fp, _ = get_thresholds_from_llr(scores, L)
     for eff_prior in eff_priors:
         model.set_threshold_from_priors_binary(eff_prior)
         predictions = model.get_predictions(scores, bin=True)
         DCFs.append(empirical_bayes_risk_binary(L, predictions, label_dict, eff_prior, model.cost_matrix))
-        P_fn, P_fp, t = get_thresholds_from_llr(scores, L)
         minDCFs.append(min_DCF_binary(eff_prior, model.cost_matrix, P_fn=P_fn, P_fp=P_fp))
     plt.plot(eff_prior_log_odds, DCFs, label='DCF')
     plt.plot(eff_prior_log_odds, minDCFs, label='min DCF')

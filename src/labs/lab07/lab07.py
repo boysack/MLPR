@@ -286,11 +286,11 @@ if __name__ == "__main__":
         print_conf_matrix(label_dict=label_dict, L=L, predictions=predictions)
 
         print("Binary func")
-        print(f"uDCF = {empirical_bayes_risk_binary(L, predictions, label_dict, c[0], C):0.3f}")
-        print(f" DCF = {empirical_bayes_risk_binary(L, predictions, label_dict, c[0], C, normalize=True):0.3f}")
+        print(f"uDCF = {empirical_bayes_risk_binary(L, predictions, label_dict, c[0], C, normalize=False):0.3f}")
+        print(f" DCF = {empirical_bayes_risk_binary(L, predictions, label_dict, c[0], C):0.3f}")
         print("Multiclass func")
-        print(f"uDCF = {empirical_bayes_risk(L, predictions, label_dict, p, C):0.3f}")
-        print(f" DCF = {empirical_bayes_risk(L, predictions, label_dict, p, C, normalize=True):0.3f}")
+        print(f"uDCF = {empirical_bayes_risk(L, predictions, label_dict, p, C, normalize=False):0.3f}")
+        print(f" DCF = {empirical_bayes_risk(L, predictions, label_dict, p, C):0.3f}")
 
     P_fn, P_fp, t = get_thresholds_binary(llr, L)
     for c in config:

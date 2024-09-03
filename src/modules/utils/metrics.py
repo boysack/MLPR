@@ -12,6 +12,7 @@ def accuracy(L, predictions):
     return 1 - error_rate(L, predictions)
 
 def conf_matrix(L, predictions, label_dict):
+    # TODO: fix the non-zero based problem
     cfm = np.zeros((len(label_dict),len(label_dict)), dtype=int)
     for j in label_dict.values():
         p = predictions[L==j]
@@ -34,8 +35,26 @@ def print_conf_matrix(label_dict, cfm = None, L = None, predictions = None, inte
     
     print(pd.DataFrame(cfm, index=row_labels, columns=column_labels))
 
-def empirical_bayes_risk_binary(L, predictions, label_dict, prior, cost_matrix, true_idx = 1, false_idx = 0, normalize = True):
-    # in gaussian, check for true_idx
+def empirical_bayes_risk_binary(prior, L, llr = None, predictions = None, cost_matrix = None, true_idx = 1, normalize = True):
+    false_idx = (true_idx + 1) % 2
+
+    if true_idx == 1:
+        label_dict = {"False": 0, "True": 1}
+    else:
+        label_dict = {"True": 1, "False": 0}
+
+    if predictions is None:
+        if llr is None:
+            raise Exception("One between the parameters llr and predictions must be passed to calculate actDCF")
+        l_scores = llr + np.log(prior/(1-prior))
+        predictions = np.empty(l_scores.shape)
+        predictions[l_scores > 0] = list(label_dict.values())[true_idx]
+        predictions[l_scores <= 0] = list(label_dict.values())[false_idx]
+        
+    if cost_matrix is None:
+        cost_matrix = np.ones((2, 2))
+        np.fill_diagonal(cost_matrix, 0)
+
     cfm = conf_matrix(L, predictions, label_dict)
 
     P_fn = cfm[false_idx, true_idx] / (cfm[false_idx, true_idx]+cfm[true_idx, true_idx])
@@ -51,7 +70,13 @@ def empirical_bayes_risk_binary(L, predictions, label_dict, prior, cost_matrix, 
     
     return (prior * C_fn * P_fn + (1-prior) * C_fp * P_fp) / d
 
-def empirical_bayes_risk(L, predictions, label_dict, priors, cost_matrix, normalize = True):
+def empirical_bayes_risk(L, predictions, label_dict, priors, cost_matrix = None, normalize = True):
+    # use neutral cost_matrix (useful with effective prior)
+    if cost_matrix is None:
+        n = len(label_dict)
+        cost_matrix = np.ones((n, n))
+        np.fill_diagonal(cost_matrix, 0)
+
     # priors and costs must be aligned as index (user responsibility)
     priors = col(np.array(priors))
     cfm = conf_matrix(L, predictions, label_dict)
@@ -65,14 +90,20 @@ def empirical_bayes_risk(L, predictions, label_dict, priors, cost_matrix, normal
 
     return (row(priors) * (R * cost_matrix).sum(0)).sum() / d
 
-def min_DCF_binary(prior, C, llr = None, L = None, P_fn = None, P_fp = None, thresholds = None, true_idx = 1, false_idx = 0, normalize = True, return_threshold = False):
+def min_DCF_binary(prior, L = None, llr = None, P_fn = None, P_fp = None, cost_matrix = None, thresholds = None, true_idx = 1, normalize = True, return_threshold = False):
+    false_idx = (true_idx + 1) % 2
     if P_fn is None or P_fp is None:
         # must compute them
-        if llr is None or llr is None:
-            raise Exception("One of the couple of parameters P_fn, P_fp or llr, L must be passed to calculate minDCF")
+        if llr is None or L is None:
+            raise Exception("One between the couple of parameters P_fn, P_fp or llr, L must be passed to calculate minDCF")
         P_fn, P_fp, thresholds = get_thresholds_from_llr(llr, L)
-    C_fn = C[false_idx, true_idx]
-    C_fp = C[true_idx, false_idx]
+
+    # use neutral cost_matrix (useful with effective prior)
+    if cost_matrix is None:
+        cost_matrix = np.ones((2, 2))
+        np.fill_diagonal(cost_matrix, 0)
+    C_fn = cost_matrix[false_idx, true_idx]
+    C_fp = cost_matrix[true_idx, false_idx]
 
     DCFs = prior * C_fn * P_fn + (1-prior) * C_fp * P_fp
     min_DCF_arg = np.argmin(DCFs)

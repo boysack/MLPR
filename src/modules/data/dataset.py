@@ -72,3 +72,17 @@ def split_db_2to1(D, L, seed=0):
     LVAL = L[idxTest]
 
     return (DTR, LTR), (DVAL, LVAL)
+
+def split_db_in_folds(D, L, k, seed=0):
+    n_fold = int(D.shape[1]/k)
+    np.random.seed(seed)
+    idx = np.random.permutation(D.shape[1])
+    D_folds = []
+    L_folds = []
+    for fold in range(k):
+        start = fold * n_fold
+        end = min(D.shape[1], (fold+1)*n_fold)
+        D_folds.append(D[:,idx[start:end]])
+        L_folds.append(L[idx[start:end]])
+
+    return list(zip(D_folds, L_folds))
