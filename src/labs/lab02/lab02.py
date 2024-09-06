@@ -82,7 +82,7 @@ def fd_optimal_bins(D: np.ndarray):
 def scatter_hist_per_feat(D, L, label_dict, feature_dict = None, bins=None, subplots=True):
     plots_per_row = D.shape[0]
     
-    #TODO: dynamic specification of size of the figure
+    # TODO: dynamic specification of size of the figure
     plt.figure(layout="tight", figsize=(20,15), dpi=200)
     for i in range(D.shape[0]):
         for j in range(D.shape[0]):

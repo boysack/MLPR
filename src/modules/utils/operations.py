@@ -31,8 +31,8 @@ def row(x: ndarray) -> ndarray:
     else:
         return x.reshape(1, -1)
 
-# TODO: CHECK IF NECESSARY TO CHECK IF THE DATASET IS NONE
-# actually, the parameter is mandatory, so is probably useless to check if it's none since it will be checked atuomatically
+# TODO: check if better to move in metrics
+
 def mean(D: ndarray) -> ndarray:
     """
     Calculate mean vector of the dataset.
@@ -80,31 +80,12 @@ def cov(D: ndarray, mu: ndarray = None ) -> ndarray:
 def p_corr(C: ndarray):
     return C / (col(C.diagonal()**0.5) * row(C.diagonal()**0.5))
 
-def center_data(D: ndarray, mu: ndarray = None) -> ndarray:
-    """
-    Calculate the mean centered data.
-
-    Parameters:
-    D (ndarray): the dataset (sample = column vector).
-    mu (ndarray): the mean vector.
-
-    Returns:
-    ndarray: the centered data.
-    """
-    if mu is None:
-        mu = mean(D)
-    else:
-        mu = col(mu)
-    return D - mu
-
-
 def trunc(values, decs=0):
     """
     Used to truncate values precision to perform comparison of numpy arrays calculated using different techniques, and so having slightly different results
     """
     return np.trunc(values*10**decs)/(10**decs)
 
-# TODO: understand if the method is specific for gaussian model
 def get_thresholds_from_llr(llr, L):
     llr_sorter = np.argsort(llr)
     llr = llr[llr_sorter]

@@ -14,7 +14,7 @@ def get_screen_size():
     return screen_width, screen_height
 
 def hist_per_feat(D, L, label_dict, bins=None, subplots=True):
-    #TODO: fix bug: if subplots=False it show an empty plot in the end
+    # TODO: fix bug: if subplots=False it show an empty plot in the end
 
     feats = D.shape[0]
     plots_per_row = ceil(sqrt(feats))
@@ -51,7 +51,7 @@ def fd_optimal_bins(D: ndarray):
     return nbins
 
 def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplots=True):
-    #TODO: fix bug: if subplots=False it show an empty plot in the end
+    # TODO: fix bug: if subplots=False it show an empty plot in the end
 
     plots_per_row = D.shape[0]
     

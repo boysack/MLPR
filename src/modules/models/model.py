@@ -7,7 +7,10 @@ class Model:
     def predict(self):
         pass
 
-    def get_predictions():
+    def get_scores(self):
+        pass
+
+    def get_predictions(self):
         pass
     
     # TODO: get, for the further models, if it makes sense to implement it here
