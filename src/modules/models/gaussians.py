@@ -165,23 +165,183 @@ class TiedGModel(GaussianModel):
 
 # TODO: implement TiedNaive
 
-def logpdf_GAU_ND(x, mu = None, C = None):
+class GaussianMixtureModel(Model):
+    def __init__(self, D, L, label_dict, gmm = None, n = None, psi = 0.01, d = 10**-100, alpha = 0.1):
+        self.D = D
+        self.L = L
+        self.label_dict = label_dict
+
+        # Gaussian Mixture Model parameters
+        if gmm is None:
+            # LBG
+            self.gmm = [(1, mean(D), cov(D))]
+        else:
+            # set manually initial point
+            self.gmm = gmm
+        
+        # Number of Gaussian component
+        # TODO: deal even with number that aren't multiple of 2
+        if n is not None:
+            self.n = (2**np.round(np.log2(n))).astype(int)
+        else:
+            self.n = None
+
+        # init covariance constraint
+        for i, _ in enumerate(self.gmm):
+            self.gmm[i] = (self.gmm[i][0], self.gmm[i][1], covariance_constraining(psi, self.gmm[i][2]))
+            
+        self.psi = psi
+
+        # stopping criterion for fitting function
+        self.d = d
+
+        # LBG algorithm displacement
+        self.alpha = alpha
+
+    def fit(self):
+        avg_loss = self.em()
+        if self.n is not None:
+            # LBG
+            n = len(self.gmm)
+            avg_loss = [avg_loss]
+            while n < self.n:
+                self.lbg()
+                avg_loss.append(self.em())
+                n = len(self.gmm)
+        return avg_loss
+        
+    def em(self):
+        old_l_likelihood = -np.inf
+        l_likelihood = 0
+
+        while True:
+            l_marginal, _, l_posterior_g = logpdf_GMM(self.D, self.gmm)
+            l_likelihood = l_marginal.sum()
+            if l_likelihood - old_l_likelihood < self.d:
+                old_l_likelihood = l_likelihood
+                break
+            old_l_likelihood = l_likelihood
+
+            posterior_g = np.exp(l_posterior_g)
+
+            self.gmm = self.maximize(posterior_g)
+        
+        return l_likelihood/self.D.shape[1]
+    
+    def maximize(self, posterior_g):
+        pass
+    
+    def lbg(self):
+        new_gmm = []
+        for g in self.gmm:
+            w_g = g[0]
+            mu_g = g[1]
+            C_g = g[2]
+            U, s, Vh = np.linalg.svd(C_g)
+            d = U[:, 0:1] * s[0]**0.5 * self.alpha
+            new_gmm.extend(
+                [(w_g/2, mu_g - d, C_g),
+                (w_g/2, mu_g + d, C_g)]
+            )
+        self.gmm = new_gmm
+
+    def predict(self):
+        pass
+
+    def get_scores(self):
+        pass
+
+    def get_predictions(self):
+        pass
+    
+    # TODO: get, for the further models, if it makes sense to implement it here
+    # used to plot bayes error plot
+    def set_threshold_from_priors_binary(self):
+        pass
+
+class MVGMModel(GaussianMixtureModel):
+    def maximize(self, posterior_g):
+        Z_g = posterior_g.sum(1)
+        F_g = (posterior_g[:, np.newaxis, :] * self.D).sum(2)
+        S_g = np.dot(posterior_g[:, np.newaxis, :] * self.D, self.D.T)
+
+        # TODO: is it really beneficial? try to iteratively calculate (and check if it's right this way)
+        mu = (F_g/Z_g[:, np.newaxis]).T
+        C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
+        w = Z_g/Z_g.sum()
+
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, C[:, :, i])) for i in range(len(self.gmm))]
+
+class NaiveGMModel(GaussianMixtureModel):    
+    def maximize(self, posterior_g):
+        Z_g = posterior_g.sum(1)
+        F_g = (posterior_g[:, np.newaxis, :] * self.D).sum(2)
+        S_g = np.dot(posterior_g[:, np.newaxis, :] * self.D, self.D.T)
+
+        # TODO: is it really beneficial? try to iteratively calculate (and check if it's right this way)
+        mu = (F_g/Z_g[:, np.newaxis]).T
+        C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
+        w = Z_g/Z_g.sum()
+
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, (C[:, :, i]) * np.eye(C.shape[0]))) for i in range(len(self.gmm))]
+    
+class TiedGMModel(GaussianMixtureModel):
+    def maximize(self, posterior_g):
+        Z_g = posterior_g.sum(1)
+        F_g = (posterior_g[:, np.newaxis, :] * self.D).sum(2)
+        S_g = np.dot(posterior_g[:, np.newaxis, :] * self.D, self.D.T)
+
+        # TODO: is it really beneficial? try to iteratively calculate (and check if it's right this way)
+        mu = (F_g/Z_g[:, np.newaxis]).T
+        C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
+        w = Z_g/Z_g.sum()
+
+        C = sum([w[i]*C[:,:,i] for i in range(len(self.gmm))])
+
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, C)) for i in range(len(self.gmm))]
+
+def logpdf_GAU_ND(D, mu = None, C = None):
     if np.isscalar(C):
         logdet = np.log(C)
         inv = 1/C
     else:
         logdet = np.linalg.slogdet(C)[1]
         inv = np.linalg.inv(C)
-    M = x.shape[0]
-    x_c = x - mu
-    return -(M/2) * np.log(2*np.pi) - .5 * logdet - .5 * (np.dot(x_c.T, inv).T * x_c).sum(0)
+    M = D.shape[0]
+    D_c = D - mu
+    return -(M/2) * np.log(2*np.pi) - .5 * logdet - .5 * (np.dot(D_c.T, inv).T * D_c).sum(0)
 
+# used for maximum likelihood evaluation (actually not used in practice)
 def loglikelihood(X, mu, C):
     return logpdf_GAU_ND(X, mu, C).sum()
 
-# TODO: move??
 def expected_bayes_cost(C, posteriors, is_log = False):
     if is_log is True:
         posteriors = np.exp(posteriors)
     
     return np.dot(C, posteriors)
+
+def logpdf_GMM(D, gmm):
+    # TODO: check if broadcasting is exploitable (since for too much high number of gaussian i think there's overfitting, probably some low number of it is
+    # sufficient to obtain maximum performance by this model, i.e. the list implementation is sufficient and more readable)
+    l_joint_g = np.empty((len(gmm), D.shape[1]))
+    for i, g in enumerate(gmm):
+        w, mu, C = g
+        # log f_x(x) + log w = log N(x|mu,C) + log w
+        l_joint_g[i, :] = logpdf_GAU_ND(D, mu, C) + np.log(w)
+
+    # log( sum_g( exp( l_joint ) ) )
+    l_marginal_g = logsumexp(l_joint_g, axis=0)
+    l_posterior_g = l_joint_g - l_marginal_g
+
+    return l_marginal_g, l_joint_g, l_posterior_g
+
+def covariance_constraining(psi, C):
+    U, s, _ = np.linalg.svd(C)
+    s[s<psi] = psi
+    C = U @ ((s*U).T)
+
+    return C
+
+def from_list_of_tuples_in_multidimensional_ndarray():
+    pass
