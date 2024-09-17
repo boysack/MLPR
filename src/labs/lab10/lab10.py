@@ -4,6 +4,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 from modules.models.gaussians import MVGMModel, NaiveGMModel, TiedGMModel, logpdf_GMM
 from modules.utils.operations import col, trunc
+from modules.data.dataset import load, split_db_2to1
+from modules.utils.metrics import error_rate, min_DCF_binary, empirical_bayes_risk_binary
 
 import numpy as np
 
@@ -19,33 +21,34 @@ def plot_1D_density():
     D = np.load("./labs/lab10/Data/GMM_data_4D.npy")
     #gmm = load_gmm("./labs/lab10/Data/GMM_1D_3G_init.json")
 
-    gm = MVGMModel(D, [], [], n=4)
+    gm = MVGMModel(D, n=4)
     avg_l_likelihood = gm.fit()
     DPLOT = np.linspace(np.min(D), np.max(D), 1000).reshape(1,-1)
     import matplotlib.pyplot as plt
-    gmm = [(w, mu[0], C[0,0].reshape(1,1)) for w, mu, C in gm.gmm]
+    gmm = [(w, mu[0], C[0,0].reshape(1,1)) for w, mu, C in gm.gmm[0]]
     p = np.exp(logpdf_GMM(DPLOT, gmm)[0])
     plt.plot(DPLOT.ravel(), p)
 
-    gm = NaiveGMModel(D, [], [], n=4)
+    gm = NaiveGMModel(D, n=4)
     avg_l_likelihood = gm.fit()
     DPLOT = np.linspace(np.min(D), np.max(D), 1000).reshape(1,-1)
     import matplotlib.pyplot as plt
-    gmm = [(w, mu[0], C[0,0].reshape(1,1)) for w, mu, C in gm.gmm]
+    gmm = [(w, mu[0], C[0,0].reshape(1,1)) for w, mu, C in gm.gmm[0]]
     p = np.exp(logpdf_GMM(DPLOT, gmm)[0])
     plt.plot(DPLOT.ravel(), p)
 
-    gm = TiedGMModel(D, [], [], n=4)
+    gm = TiedGMModel(D, n=4)
     avg_l_likelihood = gm.fit()
     DPLOT = np.linspace(np.min(D), np.max(D), 1000).reshape(1,-1)
     import matplotlib.pyplot as plt
-    gmm = [(w, mu[0], C[0,0].reshape(1,1)) for w, mu, C in gm.gmm]
+    gmm = [(w, mu[0], C[0,0].reshape(1,1)) for w, mu, C in gm.gmm[0]]
     p = np.exp(logpdf_GMM(DPLOT, gmm)[0])
     plt.plot(DPLOT.ravel(), p)
 
     plt.show()
 
 if __name__=="__main__":
+    # INTIAL TESTS
     """ D = np.load("./labs/lab10/Data/GMM_data_4D.npy")
     gmm = load_gmm("./labs/lab10/Data/GMM_4D_3G_init.json")
 
@@ -54,7 +57,7 @@ if __name__=="__main__":
     #print(np.all(logpdfs == logpdfs_sol))
 
     #print(l_posterior_g.shape)
-    gm = GaussianMixtureModel(D, [], [], gmm=gmm)
+    gm = MVGMModel(D, [], [], gmm={0: gmm})
     avg_l_likelihood = gm.fit()
     #print(avg_l_likelihood)
 
@@ -68,7 +71,84 @@ if __name__=="__main__":
             #print(np.all(my[p] == sol[p]))
             pass """
 
+    # PLOT 1D DENSITY
     #plot_1D_density()
 
     # CLASSIFICATION
-    mvgmm = MVGMModel()
+    D, L, label_dict = load("labs/data/iris.csv")
+    (DTR, LTR), (DVAL, LVAL) = split_db_2to1(D, L)
+    results = {
+        "Multivariate": [],
+        "Naive": [],
+        "Tied covariance": []
+    }
+    # uniform priors
+    l_priors = np.log([1/len(label_dict) for _ in range(len(label_dict))])
+    l_priors = np.log([.1,.1,.8])
+
+    for i in range(5):
+        n = 2**i
+        mvgmm = MVGMModel(DTR, LTR, label_dict=label_dict, l_priors=l_priors, n=n, d=10**-6)
+        mvgmm.fit()
+        predictions, l_scores = mvgmm.predict(DVAL)
+        results["Multivariate"].append(error_rate(LVAL, predictions))
+        
+        mvgmm = TiedGMModel(DTR, LTR, label_dict=label_dict, l_priors=l_priors, n=n, d=10**-6)
+        mvgmm.fit()
+        predictions, l_scores = mvgmm.predict(DVAL)
+        results["Tied covariance"].append(error_rate(LVAL, predictions))
+
+        mvgmm = NaiveGMModel(DTR, LTR, label_dict=label_dict, l_priors=l_priors, n=n, d=10**-6)
+        mvgmm.fit()
+        predictions, l_scores = mvgmm.predict(DVAL)
+        results["Naive"].append(error_rate(LVAL, predictions))
+
+    for k, v in results.items():
+        print(f"{k:>20} {[er for er in np.array(v)*100]}")
+
+    # BINARY CLASSIFICATION
+
+    D = np.load("./labs/lab10/Data/ext_data_binary.npy")
+    L = np.load("./labs/lab10/Data/ext_data_binary_labels.npy")
+    (DTR, LTR), (DVAL, LVAL) = split_db_2to1(D, L)
+    label_dict = {}
+    for l in np.unique(L):
+        label_dict[f"{l}"] = l
+
+    results = {
+        "Multivariate": [],
+        "Naive": [],
+        "Tied covariance": []
+    }
+
+    for i in range(5):
+        n = 2**i
+        mvgmm = MVGMModel(DTR, LTR, label_dict=label_dict, n=n, d=10**-6)
+        mvgmm.fit()
+
+        l_scores = mvgmm.get_scores(DVAL)
+        llr = l_scores[1]-l_scores[0]
+        min_DCF = min_DCF_binary(prior=0.5, L=LVAL, llr=llr)
+        act_DCF = empirical_bayes_risk_binary(prior=0.5, L=LVAL, llr=llr)
+        results["Multivariate"].append((min_DCF, act_DCF))
+        
+        mvgmm = TiedGMModel(DTR, LTR, label_dict=label_dict, n=n, d=10**-6)
+        mvgmm.fit()
+        
+        l_scores = mvgmm.get_scores(DVAL)
+        llr = l_scores[1]-l_scores[0]
+        min_DCF = min_DCF_binary(prior=0.5, L=LVAL, llr=llr)
+        act_DCF = empirical_bayes_risk_binary(prior=0.5, L=LVAL, llr=llr)
+        results["Tied covariance"].append((min_DCF, act_DCF))
+
+        mvgmm = NaiveGMModel(DTR, LTR, label_dict=label_dict, n=n, d=10**-6)
+        mvgmm.fit()
+
+        l_scores = mvgmm.get_scores(DVAL)
+        llr = l_scores[1]-l_scores[0]
+        min_DCF = min_DCF_binary(prior=0.5, L=LVAL, llr=llr)
+        act_DCF = empirical_bayes_risk_binary(prior=0.5, L=LVAL, llr=llr)
+        results["Naive"].append((min_DCF, act_DCF))
+
+    for k, v in results.items():
+        print(f"{k:>20} {[f'{min_DCF:.4f} / {act_DCF:.4f}' for min_DCF, act_DCF in v]}")

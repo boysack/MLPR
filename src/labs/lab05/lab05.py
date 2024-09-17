@@ -160,6 +160,8 @@ def error_rate(L, predictions):
     error_rate = wrong_p/L.size
     return error_rate
 
+from modules.models.gaussians import TiedGModel
+
 if __name__=="__main__":
     D, L, label_dict = load("labs/data/iris.csv")
     (DTR, LTR), (DVAL, LVAL) = split_db_2to1(D, L)
@@ -215,8 +217,8 @@ if __name__=="__main__":
     print(f"accuracy: {(1-e_r)*100:.2f}%")
 
     ### TIED GAUSSIAN MODEL ###
-    # mine: error rate = 8.00%
-    # prof: error rate = 2.00%
+    # mine: error rate = 2.00%
+    # prof: error rate = 2.00% - OK
     print("### TIED GAUSSIAN MODEL ###")
     mvg = TiedGModel(DTR, LTR, label_dict)
     mvg.fit()
@@ -250,11 +252,10 @@ if __name__=="__main__":
     
     mvg = MVGModel(DTR, LTR, label_dict)
     mvg.fit()
-    predictions = mvg.predict(DVAL)
+    predictions, _ = mvg.predict(DVAL)
     debug_predictions, results = mvg.debug_predict(DVAL)
     
     # print(np.all(predictions == debug_predictions)) # OK
-
     e_r = error_rate(LVAL, predictions)
     print(f"error_rate: {e_r*100:.2f}%")
     print(f"accuracy: {(1-e_r)*100:.2f}%")
