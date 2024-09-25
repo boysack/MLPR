@@ -3,6 +3,8 @@ import pandas as pd
 
 from modules.utils.operations import col, row, get_thresholds_from_llr
 
+# TODO: check true_idx < 2
+
 def error_rate(L, predictions):
     wrong_p = (L!=predictions).sum()
     error_rate = wrong_p/L.size
@@ -37,6 +39,8 @@ def print_conf_matrix(label_dict, cfm = None, L = None, predictions = None, inte
 
 def empirical_bayes_risk_binary(prior, L, llr = None, predictions = None, cost_matrix = None, true_idx = 1, normalize = True):
     false_idx = (true_idx + 1) % 2
+    # to manage if the true_idx is not 0 or 1
+    true_idx = (false_idx + 1) % 2
 
     if true_idx == 1:
         label_dict = {"False": 0, "True": 1}
@@ -46,10 +50,11 @@ def empirical_bayes_risk_binary(prior, L, llr = None, predictions = None, cost_m
     if predictions is None:
         if llr is None:
             raise Exception("One between the parameters llr and predictions must be passed to calculate actDCF")
+        # TODO: doesn't make sense to do so -> is passed 1 for true class every time
         l_scores = llr + np.log(prior/(1-prior))
         predictions = np.empty(l_scores.shape)
-        predictions[l_scores > 0] = list(label_dict.values())[true_idx]
-        predictions[l_scores <= 0] = list(label_dict.values())[false_idx]
+        predictions[l_scores > 0] = 1
+        predictions[l_scores <= 0] = 0
         
     if cost_matrix is None:
         cost_matrix = np.ones((2, 2))

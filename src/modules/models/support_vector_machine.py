@@ -4,6 +4,8 @@ from modules.utils.operations import row, col
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
 
+# TODO: label_dict?
+
 class SupportVectorMachine(Model):
     def __init__(self, D, L, label_dict, C = None, xi = 1, alpha = None, kernel = None, kernel_args = []):
         self.D = np.vstack((D, np.full((1, D.shape[1]), xi**(1/2))))

@@ -55,7 +55,7 @@ if __name__=="__main__":
                 act_DCF = empirical_bayes_risk_binary(prior=.5, L=LVAL, predictions=predictions)
                 min_DCF = min_DCF_binary(prior=.5, L=LVAL, llr=scores)
                 
-                print(f"K = xi^(1/2) = {k: >2} | C = {c: >4} | kernel = {svm.kernel: >3} ({svm.kernel_args[:-1]}) | dual loss = {loss['dual_loss']:#.6e} | error rate = {err*100: >4.1f}% | min DCF = {min_DCF:0.4f} | actDCF = {act_DCF:0.4f}")
+                print(f"K = xi^(1/2) = {k: >2} | C = {c: >4} | kernel = {svm.kernel: >3} ({svm.kernel_args[:-1]}) | dual loss = {loss['dual_loss']:#.6e} | error rate = {err*100: >4.1f}% | minDCF = {min_DCF:0.4f} | actDCF = {act_DCF:0.4f}")
                 del svm
                 #print(svm.alpha)
                 #print(svm.w)
@@ -74,7 +74,7 @@ if __name__=="__main__":
                 act_DCF = empirical_bayes_risk_binary(prior=.5, L=LVAL, predictions=predictions)
                 min_DCF = min_DCF_binary(prior=.5, L=LVAL, llr=scores)
                 
-                print(f"K = xi^(1/2) = {k: >2} | C = {c: >4} | kernel = {svm.kernel: >3} ({svm.kernel_args[:-1]}) | dual loss = {loss['dual_loss']:#.6e} | error rate = {err*100: >4.1f}% | min DCF = {min_DCF:0.4f} | actDCF = {act_DCF:0.4f}")
+                print(f"K = xi^(1/2) = {k: >2} | C = {c: >4} | kernel = {svm.kernel: >3} ({svm.kernel_args[:-1]}) | dual loss = {loss['dual_loss']:#.6e} | error rate = {err*100: >4.1f}% | minDCF = {min_DCF:0.4f} | actDCF = {act_DCF:0.4f}")
                 del svm
                 #print(svm.alpha)
                 #print(svm.w)

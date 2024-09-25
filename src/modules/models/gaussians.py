@@ -3,6 +3,8 @@ from scipy.special import logsumexp
 from modules.utils.operations import col, mean, cov
 from modules.models.model import Model
 
+# TODO: label_dict?
+
 class GaussianModel(Model):
     def __init__(self, D, L, label_dict, l_priors = None, cost_matrix = None):
         self.D = D

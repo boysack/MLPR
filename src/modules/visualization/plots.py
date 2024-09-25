@@ -7,6 +7,8 @@ from screeninfo import get_monitors
 from modules.utils.metrics import empirical_bayes_risk_binary, min_DCF_binary
 from modules.utils.operations import get_thresholds_from_llr
 
+# TODO: make the function receive a boolean parameter show, and a filepath where to save eventually the plot
+
 def get_screen_size():
     primary_monitor = get_monitors()[0]
     screen_width = primary_monitor.width
@@ -78,20 +80,33 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
                     plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5, alpha=.5)
             plt.legend(loc='upper right')
 
-def bayes_error_plot_binary(llr, L, label_dict, start, stop, num, model, plot_title = None):
+def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21, plot_title = None, plot_min_DCF = True, act_DCF_prefix = "", min_DCF_prefix = ""):
     eff_prior_log_odds = np.linspace(start, stop, num)
     eff_priors = 1/(1+np.exp(-eff_prior_log_odds))
+
     DCFs = []
     minDCFs = []
-    scores = llr
-    P_fn, P_fp, _ = get_thresholds_from_llr(scores, L)
-    for eff_prior in eff_priors:
-        model.set_threshold_from_priors_binary(eff_prior)
-        predictions = model.get_predictions(scores, bin=True)
-        DCFs.append(empirical_bayes_risk_binary(L, predictions, label_dict, eff_prior, model.cost_matrix))
-        minDCFs.append(min_DCF_binary(eff_prior, model.cost_matrix, P_fn=P_fn, P_fp=P_fp))
-    plt.plot(eff_prior_log_odds, DCFs, label='DCF')
-    plt.plot(eff_prior_log_odds, minDCFs, label='min DCF')
+
+    P_fn, P_fp, _ = get_thresholds_from_llr(llr, L)
+    color = None
+    if plot_min_DCF:
+        for eff_prior in eff_priors:
+            DCFs.append(empirical_bayes_risk_binary(prior=eff_prior, L=L, llr=llr, true_idx=true_idx))
+            minDCFs.append(min_DCF_binary(prior=eff_prior, P_fn=P_fn, P_fp=P_fp, true_idx=true_idx))
+
+        line = plt.plot(eff_prior_log_odds, minDCFs, label=f'{min_DCF_prefix} min DCF'.strip(), linestyle="dashed")
+        color = line[0]._color
+    else:
+        for eff_prior in eff_priors:
+            DCFs.append(empirical_bayes_risk_binary(prior=eff_prior, L=L, llr=llr, true_idx=true_idx))
+
+    if color is not None:
+        plt.plot(eff_prior_log_odds, DCFs, label=f'{act_DCF_prefix} DCF'.strip(), color=color)
+    else:
+        plt.plot(eff_prior_log_odds, DCFs, label=f'{act_DCF_prefix} DCF'.strip())
+
+    plt.legend()
+
     plt.xlabel(r'$\log \dfrac{\tilde{\pi}}{1-\tilde{\pi}}$')
     plt.ylabel("DCF")
 

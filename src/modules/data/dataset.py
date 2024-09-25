@@ -59,10 +59,11 @@ def load(filename: str, delimiter: str = ",") -> tuple[ndarray, ndarray, dict]:
 
     return D, L, label_dict
 
-def split_db_2to1(D, L, seed=0):
-    nTrain = int(D.shape[1]*2.0/3.0)
+def split_db_2to1(D, L, fraction=2.0/3.0, seed=0):
+    nTrain = int(D.shape[1]* fraction)
     np.random.seed(seed)
     idx = np.random.permutation(D.shape[1])
+    #idx = np.arange(D.shape[1])
     idxTrain = idx[0:nTrain]
     idxTest = idx[nTrain:]
 
@@ -74,15 +75,36 @@ def split_db_2to1(D, L, seed=0):
     return (DTR, LTR), (DVAL, LVAL)
 
 def split_db_in_folds(D, L, k, seed=0):
-    n_fold = int(D.shape[1]/k)
+    if len(D.shape) == 1:
+        D = D[np.newaxis, :]
+    if k < 1 or k > D.shape[1]:
+        raise Exception(f"Bad k inserted | k = {k} ({0} < k <= {D.shape[1]})")
+    
+    n_fold = D.shape[1]/k
+    n_fold_int = int(n_fold)
+    n_fold_dec = n_fold - n_fold_int
     np.random.seed(seed)
     idx = np.random.permutation(D.shape[1])
     D_folds = []
     L_folds = []
+    dec_acc = 0
+    start = 0
     for fold in range(k):
-        start = fold * n_fold
-        end = min(D.shape[1], (fold+1)*n_fold)
+        to_add = n_fold_int
+        dec_acc += n_fold_dec
+        if dec_acc >= 1:
+            to_add += 1
+            dec_acc -= 1
+        if fold == k-1:
+            end = len(idx)
+        else:
+            end = start + to_add
         D_folds.append(D[:,idx[start:end]])
         L_folds.append(L[idx[start:end]])
 
-    return list(zip(D_folds, L_folds))
+        start = end
+        """ print(D[:,idx[start:end]].shape)
+        print(L[idx[start:end]].shape) """
+
+    # return idx for debug purpose
+    return list(zip(D_folds, L_folds)) #, idx

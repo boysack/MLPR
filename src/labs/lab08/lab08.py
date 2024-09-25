@@ -45,7 +45,7 @@ if __name__ == "__main__":
         for l in ls:
             print(f"lambda = {l}")
             # don't specify any prior, i.e. the prior applied in training will be the same as the empirical one
-            lr = LogisticRegression(DTR_m, LTR, l, label_dict)
+            lr = LogisticRegression(DTR_m, LTR, label_dict, l=l)
             final_loss = lr.fit()
             predictions, l_scores = lr.predict(DVAL_m)
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         for l in ls:
             print(f"lambda = {l}")
             # specify prior, i.e. the prior applied in training will be the one specified
-            lr = LogisticRegression(DTR_m, LTR, l, label_dict, l_priors=np.log([0.2, 0.8]))
+            lr = LogisticRegression(DTR_m, LTR, label_dict, l=l, l_priors=np.log([0.2, 0.8]))
             final_loss = lr.fit()
             predictions, l_scores = lr.predict(DVAL_m)
             
