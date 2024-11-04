@@ -29,10 +29,6 @@ def lab02(D, L, label_dict):
     print(P_pca_m1)
 
 def lab03(D, L, label_dict, DTR, LTR, DVAL, LVAL):
-    # to quantitatively evaluate the overlap, I could calculate the distance between the means for each feature
-
-    # TODO: ask professor if is better to perform PCA and LDA just on training data to evaluate graphically
-
     ###### VISUALIZATION ######
 
     # plot scatter matrix of original data

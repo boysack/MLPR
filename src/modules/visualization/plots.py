@@ -15,7 +15,7 @@ def get_screen_size():
     screen_height = primary_monitor.height
     return screen_width, screen_height
 
-def hist_per_feat(D, L, label_dict, bins=None, subplots=True):
+def hist_per_feat(D, L, label_dict, bins=None, subplots=True, plot_title = None, show = True, save_path = None):
     # TODO: fix bug: if subplots=False it show an empty plot in the end
 
     feats = D.shape[0]
@@ -41,6 +41,13 @@ def hist_per_feat(D, L, label_dict, bins=None, subplots=True):
 
         # TODO: add features name label if provided
         #plt.xlabel("")
+    
+    if plot_title:
+        plt.title(plot_title)
+    if save_path:
+        plt.savefig(save_path)
+    if show:
+        plt.show()
 
 def fd_optimal_bins(D: ndarray):
     if D.ndim != 1:
@@ -52,7 +59,7 @@ def fd_optimal_bins(D: ndarray):
     nbins = max(1, nbins)
     return nbins
 
-def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplots=True):
+def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplots=True, plot_title = None, show = True, save_path = None):
     # TODO: fix bug: if subplots=False it show an empty plot in the end
 
     plots_per_row = D.shape[0]
@@ -80,7 +87,14 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
                     plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5, alpha=.5)
             plt.legend(loc='upper right')
 
-def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21, plot_title = None, plot_min_DCF = True, act_DCF_prefix = "", min_DCF_prefix = ""):
+    if plot_title:
+        plt.title(plot_title)
+    if save_path:
+        plt.savefig(save_path)
+    if show:
+        plt.show()
+
+def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21, plot_title = None, plot_min_DCF = True, act_DCF_prefix = "", min_DCF_prefix = "", show = True, save_path = None):
     eff_prior_log_odds = np.linspace(start, stop, num)
     eff_priors = 1/(1+np.exp(-eff_prior_log_odds))
 
@@ -121,10 +135,14 @@ def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21
 
     if plot_title:
         plt.title(plot_title)
+    if save_path:
+        plt.savefig(save_path)
+    if show:
+        plt.show()
 
 # TODO: check if it's convenient to do as in min_DCF_binary, i.e. to give the possibility to insert directly the scores and the labels and calculate the
 # P_fn and P_fp in place
-def roc(P_fn, P_fp, plot_title = None):
+def roc(P_fn, P_fp, plot_title = None, show = True, save_path = None):
     plt.plot(P_fp, 1-P_fn)
     plt.xlabel('FPR')
     plt.ylabel('TPR')
@@ -133,3 +151,7 @@ def roc(P_fn, P_fp, plot_title = None):
     plt.grid(True, linestyle=':')
     if plot_title:
         plt.title(plot_title)
+    if save_path:
+        plt.savefig(save_path)
+    if show:
+        plt.show()
