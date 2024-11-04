@@ -5,4 +5,4 @@ src/test
 .vscode
 test.py
 src/project/report/*
-!src/project/report.pdf
+!src/project/report/report.pdf
