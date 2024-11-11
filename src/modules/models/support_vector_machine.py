@@ -76,6 +76,7 @@ class SupportVectorMachine(Model):
         
         return (col(self.alpha.ravel() * self.Z) * self.kernel_func(self.D, D, *self.kernel_args)).sum(0)
 
+    # TODO: check if this hard assingment is concorde with the class labels used in the dataset
     def get_predictions(self, scores):
         predictions = np.empty(scores.shape)
         predictions[scores > 0] = 1

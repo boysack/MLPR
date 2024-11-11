@@ -1,11 +1,13 @@
 import numpy as np
 from numpy import ndarray
 import matplotlib.pyplot as plt
+import seaborn as sns
 from math import ceil, sqrt
 from screeninfo import get_monitors
 
 from modules.utils.metrics import empirical_bayes_risk_binary, min_DCF_binary
-from modules.utils.operations import get_thresholds_from_llr
+from modules.utils.operations import get_thresholds_from_llr, row, mean, var
+from modules.models.gaussians import logpdf_GAU_ND
 
 # TODO: make the function receive a boolean parameter show, and a filepath where to save eventually the plot
 
@@ -65,7 +67,8 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
     plots_per_row = D.shape[0]
     
     screen_width, screen_height = get_screen_size()
-    dpi = 50
+    base_dpi = 50 * 6**0.7
+    dpi = int(base_dpi/(plots_per_row**0.7))
     plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
     for i in range(D.shape[0]):
         for j in range(D.shape[0]):
@@ -84,7 +87,7 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
                     plt.hist(filtered_D_i, bins=b, alpha=0.5, label=key, density=True)
                 else:
                     filtered_D_j = D[j, L==value]
-                    plt.scatter(filtered_D_i, filtered_D_j, label=key, s=5, alpha=.5)
+                    plt.scatter(filtered_D_j, filtered_D_i, label=key, s=5, alpha=.5)
             plt.legend(loc='upper right')
 
     if plot_title:
@@ -93,6 +96,71 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
         plt.savefig(save_path)
     if show:
         plt.show()
+
+# TODO: heatmap
+def correlation_heatmap(D, plot_title = None, show = True, save_path = None):
+    """
+    Plot a heatmap of the correlation matrix for the given data array.
+
+    Parameters:
+    data (ndarray): A 2D array where rows are features and columns are samples.
+    labels (list): Optional list of labels for the features.
+
+    """
+    # Calculate the correlation matrix
+    correlation_matrix = np.corrcoef(D)
+    
+    # Create the heatmap plot
+    sns.heatmap(correlation_matrix, annot=True, cmap="RdRd", cbar=True)
+
+    # Add title and show the plot
+    if plot_title:
+        plt.title(plot_title)
+    if save_path:
+        plt.savefig(save_path)
+    if show:
+        plt.show()
+
+# TODO: gaussian distribution plot
+def gaussian_hist_plot(D, L, label_dict, bins=None, plot_title = None, show = True, save_path = None):
+    plots = D.shape[0]
+    
+    screen_width, screen_height = get_screen_size()
+    base_dpi = 50 * 6**0.7
+    dpi = int(base_dpi/(plots**(0.7/2)))
+    plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
+    cols = ceil(plots**0.5)
+    rows = round(plots**0.5)
+
+    for f in range(D.shape[0]):
+        ax = plt.subplot(rows, cols, f+1)
+        ax.margins(x=0)
+        fD = D[f, :].reshape(1,-1)
+        min = np.min(fD) - 0.5
+        max = np.max(fD) + 0.5
+        for label_str, label_int in label_dict.items():
+            fcD = fD[:, L==label_int].reshape(1,-1)
+            mu = mean(fcD)
+            v = var(fcD)
+            if bins is not None:
+                b = bins
+            else:
+                b = fd_optimal_bins((fcD).flatten())
+
+            dist = np.linspace(min, max, b*4)
+            p, = plt.plot(dist.ravel(), np.exp(logpdf_GAU_ND(row(dist), mu, v)), alpha=.8)
+            c = p.get_color()
+
+            plt.hist(fcD.ravel(), bins=b, density=True, alpha=.4, color=c, label=label_str)
+        plt.legend(loc='upper right')
+
+    if plot_title:
+        plt.title(plot_title)
+    if save_path:
+        plt.savefig(save_path)
+    if show:
+        plt.show()
+
 
 def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21, plot_title = None, plot_min_DCF = True, act_DCF_prefix = "", min_DCF_prefix = "", show = True, save_path = None):
     eff_prior_log_odds = np.linspace(start, stop, num)
