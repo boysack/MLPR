@@ -47,8 +47,10 @@ def load(filename: str, delimiter: str = ",") -> tuple[ndarray, ndarray, dict]:
             D = np.hstack((D, col(np.array([float(i) for i in line[:-1]]))))
             L = np.append(L, label_dict[label])
 
-    # if binary problem with class 0 and 1, transform in True and False their labels name
-    if all([True if key=="0" or key=="1" else False for key in label_dict.keys()]):
+    # if binary problem with class 0 and 1, transform in True the label 1 and False the label 0
+    # this ensure that, for dataset labeled with 0 for false and 1 for true, the data is correctly labeled in the label_dict
+    # this ensure even that the first entry of the dataset is 0 and the second is 1
+    if all([(key=="0" or key=="1") for key in label_dict.keys()]):
         if label_dict["1"] == 0:
             # must invert the labels
             L = np.array([1 if l == 0 else 0 for l in L])

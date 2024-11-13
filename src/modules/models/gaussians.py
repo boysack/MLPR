@@ -100,7 +100,10 @@ class GaussianModel(Model):
             bin = self.binary
 
         if self.l_priors is None:
-            self.l_priors = col(np.array([np.log(self.L[self.L==label_int].size/self.L.size) for label_int in self.label_dict.values()]))
+            # use this to set to empirical prior if no prior is given
+            #self.l_priors = col(np.array([np.log(self.L[self.L==label_int].size/self.L.size) for label_int in self.label_dict.values()]))
+            # use this to set to uniform prior if no prior is given
+            self.l_priors = col(np.log(np.array([1/len(self.label_dict)]*len(self.label_dict))))
         
         values = list(self.label_dict.values())
         if bin:
@@ -125,10 +128,40 @@ class GaussianModel(Model):
         return predictions.astype(int)
     
     # TODO: check if binary?
+    # TODO: is it used?
     def set_threshold_from_priors_binary(self, t_prior):
         self.l_priors = col(np.log([(1-t_prior), t_prior]))
         self.cost_matrix = np.ones((2,2))
         np.fill_diagonal(self.cost_matrix, 0)
+
+    def get_model_name():
+        pass
+
+    def get_model_params(self):
+        costs = {}
+        for i in range(self.cost_matrix.shape[0]):
+            for j in range(self.cost_matrix.shape[1]):
+                if i == j:
+                    continue
+                # format the cost string to be "cost_predicted-true"
+                costs["cost_"+str(i)+"-"+str(j)] = self.cost_matrix[i,j].item()
+        priors = {}
+        for i in range(self.l_priors.shape[0]):
+            priors["prior_"+str(i)] = np.exp(self.l_priors[i]).item()
+        if self.binary:
+            c_fn = costs["cost_0-1"]
+            c_fp = costs["cost_1-0"]
+
+            p = list(priors.values())[1]
+            return {
+                "prior": p,
+                "cost_fn": c_fn,
+                "cost_fp": c_fp
+                }
+        return {
+            **priors,
+            **costs
+            }
 
 class MVGModel(GaussianModel):
     def fit(self):
@@ -141,6 +174,9 @@ class MVGModel(GaussianModel):
             parameters[label_int] = p
         self.parameters = parameters
 
+    def get_model_name(self):
+        return "Multivariate_Gaussian"
+
 class NaiveGModel(GaussianModel):    
     def fit(self):
         parameters = {}
@@ -151,6 +187,9 @@ class NaiveGModel(GaussianModel):
             p = (mu, C)
             parameters[label_int] = p
         self.parameters = parameters
+
+    def get_model_name(self):
+        return "Naive_Bayes_Gaussian"
 
 class TiedGModel(GaussianModel):
     def fit(self):
@@ -164,6 +203,9 @@ class TiedGModel(GaussianModel):
             C += np.dot(Dc, Dc.T)
         C /= self.D.shape[1]
         self.parameters = {k:(mu, C) for (k, mu) in parameters.items()}
+    
+    def get_model_name(self):
+        return "Tied_Covariance_Gaussian"
 
 class TiedNaiveGModel(GaussianModel):
     def fit(self):
@@ -175,8 +217,12 @@ class TiedNaiveGModel(GaussianModel):
             Dc = Dc - mu
             parameters[label_int] = mu
             C += np.dot(Dc, Dc.T)
-        C /= (self.D.shape[1]) * np.eye(Dc.shape[0])
+        C /= (self.D.shape[1])
+        C *= np.eye(Dc.shape[0])
         self.parameters = {k:(mu, C) for (k, mu) in parameters.items()}
+    
+    def get_model_name(self):
+        return "Naive_Bayes_Tied_Covariance_Gaussian"
 
 class GaussianMixtureModel(Model):
     def __init__(self, D, L = None, label_dict = None, l_priors = None, gmm = None, n = None, psi = 0.01, d = 10**-100, alpha = 0.1):

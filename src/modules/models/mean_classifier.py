@@ -41,5 +41,10 @@ class LdaBinaryClassifier():
         predictions[D >= self.threshold + self.shift] = first
         predictions[D < self.threshold + self.shift] = second
 
-        return predictions
+        return predictions, D
 
+    def get_model_name(self):
+        return "LDA_binary_classifier"
+
+    def get_model_params(self):
+        return {}
