@@ -49,13 +49,20 @@ if __name__ == "__main__":
             final_loss = lr.fit()
             predictions, l_scores = lr.predict(DVAL_m)
 
-            # prof: use prediction of the model used using the threshold calculated with emp_priors, BUT use a different prior to
-            # evaluate empirical bayes risk (WHY?)
-            
+            #### DO THIS IN ORDER TO USE A NEW PRIOR FOR PREDICTION
+            """ 
+            # scores with the train used prior log odds subtracted
+            l_scores = lr.get_scores(DVAL_m)
+            # set a new prior
+            lr.l_priors[1] = lr.l_priors[0] = np.log(.5)
+            predictions = lr.get_predictions(l_scores)
+            """
+                        
             act_DCF_b = empirical_bayes_risk_binary(prior=0.5, L=LVAL, llr=l_scores)
             min_DCF, t = min_DCF_binary(prior=0.5, L=LVAL, llr=l_scores, return_threshold=True)
+            # the error rate in the solutions provided by professor, is the error rate calculated using empirical prior, while DCF and minDCF are calculated using prior = 0.5 (nosense, but if you check in the table \pi=0.5 is specified just below DCF and minDCF)
             print(f"final_loss = {final_loss} | error_rate = {error_rate(LVAL, predictions)*100:0.1f}% | minDCF = {min_DCF:0.4f} | actDCF = {act_DCF_b:0.4f}", end="\n")
-
+            
         print()
         for l in ls:
             print(f"lambda = {l}")

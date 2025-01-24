@@ -20,7 +20,6 @@ def pca(D: ndarray, C: ndarray = None, m: int = 1, change_sign: bool = False) ->
     if m < 1 or m > D.shape[0]:
         raise Exception(f"You're trying to extract {m} principal component (1 <= m <= {D.shape[0]})")
     if C is None:
-        #C = np.cov(D)
         C = cov(D)
     eigvals, U = np.linalg.eigh(C)
 
@@ -31,6 +30,11 @@ def pca(D: ndarray, C: ndarray = None, m: int = 1, change_sign: bool = False) ->
         P *= -1
     
     return P, V, np.dot(P.T, D)
+
+def pca_pipe(D, m = 1, P = None):
+    if P is None:
+        P, _, D = pca(D, m=m)
+    return D, m, P
 
 def sb(D: ndarray, L: ndarray) -> ndarray:
     """
@@ -91,3 +95,8 @@ def lda(D: ndarray, L: ndarray, m: int = 1, change_sign: bool = False) -> tuple[
         W *= -1
 
     return W, np.dot(W.T, D)
+
+def lda_pipe(D, L, m = 1, W = None):
+    if W is None:
+        W, D = lda(D, L, m=m)
+    return D, L, m, W

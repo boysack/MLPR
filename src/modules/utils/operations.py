@@ -124,3 +124,6 @@ def get_thresholds_from_llr(llr, L):
             thresholds_out.append(llr[idx])
 
     return np.array(P_fn_out), np.array(P_fp_out), np.array(thresholds_out)
+
+def effective_prior_binary(prior, C_fn, C_fp):
+    return prior*C_fn/(prior*C_fn+(1-prior)*C_fp)

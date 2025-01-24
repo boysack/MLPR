@@ -18,6 +18,7 @@ class Model:
         pass
 
     # TODO: implement a get_model_name and a get_parameters method??
+    @staticmethod
     def get_model_name():
         pass
 

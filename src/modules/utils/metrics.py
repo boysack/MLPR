@@ -17,8 +17,10 @@ def conf_matrix(L, predictions, label_dict):
     # TODO: fix the non-zero based problem
     cfm = np.zeros((len(label_dict),len(label_dict)), dtype=int)
     for j in label_dict.values():
+        # save prediction where actual label is j
         p = predictions[L==j]
         for i in label_dict.values():
+            # i = predicted class, j = actual class
             cfm[i,j] = (p==i).sum()
     return cfm
 
@@ -47,11 +49,15 @@ def empirical_bayes_risk_binary(prior, L, llr = None, predictions = None, cost_m
     else:
         label_dict = {"True": 1, "False": 0}
 
+    if cost_matrix is None:
+        cost_matrix = np.ones((2, 2))
+        np.fill_diagonal(cost_matrix, 0)
+
     if predictions is None:
         if llr is None:
             raise Exception("One between the parameters llr and predictions must be passed to calculate actDCF")
         # TODO: doesn't make sense to do so -> is passed 1 for true class every time
-        l_scores = llr + np.log(prior/(1-prior))
+        l_scores = llr + np.log (prior*cost_matrix[false_idx, true_idx]/((1-prior)*cost_matrix[true_idx, false_idx]))
         predictions = np.empty(l_scores.shape)
         predictions[l_scores > 0] = 1
         predictions[l_scores <= 0] = 0
@@ -72,7 +78,7 @@ def empirical_bayes_risk_binary(prior, L, llr = None, predictions = None, cost_m
         d = min(prior * C_fn, (1-prior) * C_fp)
     else:
         d = 1
-    
+
     return (prior * C_fn * P_fn + (1-prior) * C_fp * P_fp) / d
 
 def empirical_bayes_risk(L, predictions, label_dict, priors, cost_matrix = None, normalize = True):
@@ -122,3 +128,30 @@ def min_DCF_binary(prior, L = None, llr = None, P_fn = None, P_fp = None, cost_m
         return DCFs[min_DCF_arg] / d, thresholds[min_DCF_arg]
     
     return DCFs[min_DCF_arg] / d
+
+
+# Overlap Area Between Probability Density Function
+def calculate_overlap(D0, D1):
+    from modules.visualization.plots import fd_optimal_bins
+    n_features, _ = D0.shape
+
+    if n_features != D1.shape[0]:
+        raise ValueError("Number of features must be the same for both classes.")
+
+    overlaps = np.zeros(n_features)
+
+    for feature_idx in range(n_features):
+        feature_D0 = D0[feature_idx, :]
+        feature_D1 = D1[feature_idx, :]
+
+        combined_data = np.concatenate([feature_D0, feature_D1])
+        bin_count = fd_optimal_bins(combined_data)
+        bin_edges = np.histogram_bin_edges(combined_data, bins=bin_count)
+
+        hist0, _ = np.histogram(feature_D0, bins=bin_edges, density=True)
+        hist1, _ = np.histogram(feature_D1, bins=bin_edges, density=True)
+
+        overlap = np.sum(np.minimum(hist0, hist1)) * np.diff(bin_edges).mean()
+        overlaps[feature_idx] = overlap
+
+    return overlaps

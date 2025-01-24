@@ -4,7 +4,7 @@ from modules.models.logistic_regression import LogisticRegression
 
 import numpy as np
 
-def kfold_scores_pooling(D, L, model_constructor: Model, kwargs, k = 10, seed = 0):
+def kfold_scores_pooling(D, L, model_constructor: Model, kwargs, k = 10, seed = 0, preprocess_func = None, preprocess_args = []):
     # TODO: train using the model passed as argument, return all the pooled scores
     # TODO: on the labs, professor says something about shuffle on cross validation (use a different shuffle from split??)
     #folds, idx = split_db_in_folds(D, L, k, seed)
@@ -31,6 +31,11 @@ def kfold_scores_pooling(D, L, model_constructor: Model, kwargs, k = 10, seed = 
         folds_t =  folds[:fold] + folds[fold+1:]
         DTR = np.concatenate([samples for samples, _ in folds_t], axis=1)
         LTR = np.concatenate([labels for _, labels in folds_t])
+
+        if preprocess_func is not None:
+            ret = preprocess_func(DTR, *preprocess_args)
+            DTR = ret[0]
+            KDVAL = preprocess_func(KDVAL, *ret[1:])[0]
 
         model = model_constructor(DTR, LTR, **kwargs)
         model.fit()

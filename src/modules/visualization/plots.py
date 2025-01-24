@@ -6,7 +6,7 @@ from math import ceil, sqrt
 from screeninfo import get_monitors
 
 from modules.utils.metrics import empirical_bayes_risk_binary, min_DCF_binary
-from modules.utils.operations import get_thresholds_from_llr, row, mean, var
+from modules.utils.operations import get_thresholds_from_llr, row, mean, var, col
 from modules.models.gaussians import logpdf_GAU_ND
 
 # TODO: make the function receive a boolean parameter show, and a filepath where to save eventually the plot
@@ -122,7 +122,7 @@ def correlation_heatmap(D, plot_title = None, show = True, save_path = None):
         plt.show()
 
 # TODO: gaussian distribution plot
-def gaussian_hist_plot(D, L, label_dict, bins=None, plot_title = None, show = True, save_path = None):
+def gaussian_hist_plot(D, L, label_dict, bins=None, plot_title = None, show = True, save_path = None, tied_cov = False):
     plots = D.shape[0]
     
     screen_width, screen_height = get_screen_size()
@@ -138,10 +138,17 @@ def gaussian_hist_plot(D, L, label_dict, bins=None, plot_title = None, show = Tr
         fD = D[f, :].reshape(1,-1)
         min = np.min(fD) - 0.5
         max = np.max(fD) + 0.5
+        if tied_cov:
+            v = 0
+            for label_str, label_int in label_dict.items():
+                fcD = fD[:, L==label_int].reshape(1,-1)
+                v += col(((fcD - (col(fcD.sum(axis=1)/fcD.shape[1])))**2).sum(axis=1))
+            v /= fD.shape[1]
         for label_str, label_int in label_dict.items():
             fcD = fD[:, L==label_int].reshape(1,-1)
             mu = mean(fcD)
-            v = var(fcD)
+            if not tied_cov:
+                v = var(fcD)
             if bins is not None:
                 b = bins
             else:
@@ -162,7 +169,7 @@ def gaussian_hist_plot(D, L, label_dict, bins=None, plot_title = None, show = Tr
         plt.show()
 
 
-def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21, plot_title = None, plot_min_DCF = True, act_DCF_prefix = "", min_DCF_prefix = "", show = True, save_path = None):
+def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21, plot_title = None, plot_min_DCF = True, act_DCF_prefix = "", min_DCF_prefix = "", show = True, save_path = None, alpha = 1.0):
     eff_prior_log_odds = np.linspace(start, stop, num)
     eff_priors = 1/(1+np.exp(-eff_prior_log_odds))
 
@@ -176,20 +183,21 @@ def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21
             DCFs.append(empirical_bayes_risk_binary(prior=eff_prior, L=L, llr=llr, true_idx=true_idx))
             minDCFs.append(min_DCF_binary(prior=eff_prior, P_fn=P_fn, P_fp=P_fp, true_idx=true_idx))
 
-        line = plt.plot(eff_prior_log_odds, minDCFs, label=f'{min_DCF_prefix} min DCF'.strip(), linestyle="dashed")
+        line = plt.plot(eff_prior_log_odds, minDCFs, label=f'{min_DCF_prefix} min DCF'.strip(), linestyle="dashed", alpha=alpha)
         color = line[0]._color
     else:
         for eff_prior in eff_priors:
             DCFs.append(empirical_bayes_risk_binary(prior=eff_prior, L=L, llr=llr, true_idx=true_idx))
 
     if color is not None:
-        plt.plot(eff_prior_log_odds, DCFs, label=f'{act_DCF_prefix} DCF'.strip(), color=color)
+        plt.plot(eff_prior_log_odds, DCFs, label=f'{act_DCF_prefix} DCF'.strip(), color=color, alpha=alpha)
     else:
-        plt.plot(eff_prior_log_odds, DCFs, label=f'{act_DCF_prefix} DCF'.strip())
+        plt.plot(eff_prior_log_odds, DCFs, label=f'{act_DCF_prefix} DCF'.strip(), alpha=alpha)
 
     plt.legend()
 
-    plt.xlabel(r'$\log \dfrac{\tilde{\pi}}{1-\tilde{\pi}}$')
+    #plt.xlabel(r'$\log \dfrac{\tilde{\pi}}{1-\tilde{\pi}}$')
+    plt.xlabel(r'$\log\left(\tilde{\pi}/(1-\tilde{\pi})\right)$')
     plt.ylabel("DCF")
 
     plt.xlim(start, stop)
@@ -203,10 +211,12 @@ def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21
 
     if plot_title:
         plt.title(plot_title)
-    if save_path:
-        plt.savefig(save_path)
     if show:
+        # TODO: not showing plots, make the figure to keep all the axis in it: try to write a better cleaning procedure than this (for now, clean it when saving)
         plt.show()
+    if save_path:
+        plt.savefig(save_path, pad_inches=0.2)
+        plt.clf()
 
 # TODO: check if it's convenient to do as in min_DCF_binary, i.e. to give the possibility to insert directly the scores and the labels and calculate the
 # P_fn and P_fp in place

@@ -36,7 +36,8 @@ class GaussianModel(Model):
 
     def debug_predict(self, D):
         if self.l_priors is None:
-            results = [(logpdf_GAU_ND(D, self.parameters[label_int][0], self.parameters[label_int][1]), np.log(self.L[self.L==label_int].size/self.L.size)) for label_int in self.label_dict.values()]
+            results = [(logpdf_GAU_ND(D, self.
+            s[label_int][0], self.parameters[label_int][1]), np.log(self.L[self.L==label_int].size/self.L.size)) for label_int in self.label_dict.values()]
         else:
             results = [(logpdf_GAU_ND(D, self.parameters[label_int][0], self.parameters[label_int][1]), self.l_priors[label_int]) for label_int in self.label_dict.values()]
 
@@ -133,7 +134,7 @@ class GaussianModel(Model):
         self.l_priors = col(np.log([(1-t_prior), t_prior]))
         self.cost_matrix = np.ones((2,2))
         np.fill_diagonal(self.cost_matrix, 0)
-
+    @staticmethod
     def get_model_name():
         pass
 
@@ -173,8 +174,8 @@ class MVGModel(GaussianModel):
             p = (mu, C)
             parameters[label_int] = p
         self.parameters = parameters
-
-    def get_model_name(self):
+    @staticmethod
+    def get_model_name():
         return "Multivariate_Gaussian"
 
 class NaiveGModel(GaussianModel):    
@@ -187,8 +188,8 @@ class NaiveGModel(GaussianModel):
             p = (mu, C)
             parameters[label_int] = p
         self.parameters = parameters
-
-    def get_model_name(self):
+    @staticmethod
+    def get_model_name():
         return "Naive_Bayes_Gaussian"
 
 class TiedGModel(GaussianModel):
@@ -203,8 +204,8 @@ class TiedGModel(GaussianModel):
             C += np.dot(Dc, Dc.T)
         C /= self.D.shape[1]
         self.parameters = {k:(mu, C) for (k, mu) in parameters.items()}
-    
-    def get_model_name(self):
+    @staticmethod
+    def get_model_name():
         return "Tied_Covariance_Gaussian"
 
 class TiedNaiveGModel(GaussianModel):
@@ -220,8 +221,8 @@ class TiedNaiveGModel(GaussianModel):
         C /= (self.D.shape[1])
         C *= np.eye(Dc.shape[0])
         self.parameters = {k:(mu, C) for (k, mu) in parameters.items()}
-    
-    def get_model_name(self):
+    @staticmethod
+    def get_model_name():
         return "Naive_Bayes_Tied_Covariance_Gaussian"
 
 class GaussianMixtureModel(Model):
