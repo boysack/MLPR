@@ -5,7 +5,7 @@ from modules.visualization.plots import scatter_hist_per_feat, correlation_heatm
 from modules.utils.operations import var, mean, cov, p_corr, trunc, effective_prior_binary
 from modules.utils.metrics import error_rate, calculate_overlap, empirical_bayes_risk_binary, min_DCF_binary
 from modules.features.dimensionality_reduction import lda, pca, pca_pipe, lda_pipe
-from modules.features.transformation import center_data, quadratic_feature_mapping, withening, z_normalization
+from modules.features.transformation import L2_normalization, center_data, quadratic_feature_mapping, withening, z_normalization
 from modules.models.mean_classifier import LdaBinaryClassifier
 from modules.models.gaussians import MVGModel, TiedGModel, NaiveGModel, TiedNaiveGModel
 from modules.models.logistic_regression import LogisticRegression
@@ -374,74 +374,106 @@ def main():
     ######### LAB 8 #########
     ######### LOGISTIC REGRESSION
 
-    #DTR = DTR[:, ::50]
-    #LTR = LTR[::50]
     
     ls = np.logspace(-4, 2, 100)
     pi = 0.1
+
+    """ 
+    # non-prior-weighted logistic regression plot and minDCF minimum
+
+    # use 50 samples to check if regularization have less impact using 50 samples only
+    #DTR = DTR[:, ::50]
+    #LTR = LTR[::50]
+    #D = D[:, ::50]
+    #L = L[::50]
+
     dcfs = []
     min_dcfs = []
     llrs = []
-
     for l in ls:
-        """ 
-        lr = LogisticRegression(DTR, LTR, label_dict, l)
-        lr.fit()
-        predictions, llr = lr.predict(DVAL) 
-        dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
-        min_dcfs.append(min_DCF_binary(pi, LVAL, llr))
-        """
+        ### decomment/comment this part to use/not use held-out validation set 
+        #lr = LogisticRegression(DTR, LTR, label_dict, l)
+        #lr.fit()
+        #predictions, llr = lr.predict(DVAL) 
+        #dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
+        #min_dcfs.append(min_DCF_binary(pi, LVAL, llr))
+
+        ### decomment/comment this part to use/not use kfold validation
         llr, predictions, loc_LVAL = kfold_scores_pooling(D, L, LogisticRegression, {"l":l, "label_dict":label_dict})
         dcfs.append(empirical_bayes_risk_binary(pi, loc_LVAL, llr))
         min_dcfs.append(min_DCF_binary(pi, loc_LVAL, llr)) 
+
         llrs.append(llr)
     plt.xscale('log', base=10)
     plt.grid(True, linestyle=':')
-    plt.title("Not prior-weighted LR")
-    plt.plot(ls, dcfs, label="LR DCF")
-    plt.plot(ls, min_dcfs, linestyle="dashed", label="LR minDCF")
+    plt.title("Non-prior-weighted LR (50 samples)")
+    line = plt.plot(ls, dcfs, label="LR", alpha=0.5)
+    c = line[0]._color
+    plt.plot(ls, min_dcfs, linestyle="dashed", color=c, alpha=0.5)
+    
+    plt.ylim((0.2, 1.01))
+    plt.xlim(min(ls), max(ls))
+    plt.xlabel("lambda")
+    plt.ylabel("DCF/minDCF")
+
+    #plt.savefig("./project/plots/logistic_regression_minDCF_DCF_lambda_plots/50_samples_LR_DCF_minDCF_lambda_plot.png")
+    #plt.savefig("./project/plots/logistic_regression_minDCF_DCF_lambda_plots/50_samples_LR_DCF_minDCF_lambda_plot_xval.png")
+
+    #plt.savefig("./project/plots/logistic_regression_minDCF_DCF_lambda_plots/LR_DCF_minDCF_lambda_plot_xval.png")
+    #plt.savefig("./project/plots/logistic_regression_minDCF_DCF_lambda_plots/LR_DCF_minDCF_lambda_plot.png")
     #plt.show()
+    #exit()
+
     idx = np.argmin(min_dcfs)
     print(np.min(dcfs))
-    print(f"{str("Not prior-weighted LR"):<40} optimal values with l = {ls[idx]:.10f} -> minDCF = {min_dcfs[idx]:.4f} | DCF = {dcfs[idx]:.4f}")
+    print(f"{str("Non-prior-weighted LR"):<40} optimal values with l = {ls[idx]:.10f} -> minDCF = {min_dcfs[idx]:.4f} | DCF = {dcfs[idx]:.4f}")
 
-    pi = 0.1
+    # prior-weighted logistic regression plot and minDCF minimum
     dcfs = []
     min_dcfs = []
     llrs = []
     for l in ls:
-        """ 
-        lr = LogisticRegression(DTR, LTR, label_dict, l, l_priors=np.log([pi, 1-pi]))
-        lr.fit()
-        predictions, llr = lr.predict(DVAL)
-        dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
-        min_dcfs.append(min_DCF_binary(pi, LVAL, llr))
-        """
+        ### decomment/comment this part to use/not use held-out validation set 
+        #lr = LogisticRegression(DTR, LTR, label_dict, l, l_priors=np.log([pi, 1-pi]))
+        #lr.fit()
+        #predictions, llr = lr.predict(DVAL)
+        #dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
+        #min_dcfs.append(min_DCF_binary(pi, LVAL, llr))
+
+        ### decomment/comment this part to use/not use kfold validation
         llr, predictions, loc_LVAL = kfold_scores_pooling(D, L, LogisticRegression, {"l":l, "label_dict":label_dict, "l_priors": np.log([pi, 1-pi])})
         dcfs.append(empirical_bayes_risk_binary(pi, loc_LVAL, llr))
         min_dcfs.append(min_DCF_binary(pi, loc_LVAL, llr))
+
         llrs.append(llr)
     plt.xscale('log', base=10)
     plt.grid(True, linestyle=':')
     plt.title("Prior-weighted LR")
-    plt.plot(ls, dcfs, label="PWLR DCF")
-    plt.plot(ls, min_dcfs, linestyle="dashed", label="PWLR minDCF")
+    line = plt.plot(ls, dcfs, label="PWLR", alpha=0.5)
+    c = line[0]._color
+    plt.plot(ls, min_dcfs, linestyle="dashed", color=c, alpha=0.5)
     #plt.show()
     idx = np.argmin(min_dcfs)
     print(f"{str("Prior-weighted LR"):<40} optimal values with l = {ls[idx]:.10f} -> minDCF = {min_dcfs[idx]:.4f} | DCF = {dcfs[idx]:.4f}")
 
+    # show plots of non-weighted and weighted LR DCF and minDCF as a function of lambda
     #plt.axis([np.min(ls), np.min(ls), .2, 1.2])
     plt.title("Prior-weighted LR / Not prior-weighted LR")
     plt.legend(loc='upper left')
+    plt.ylim((0.2, 1.01))
+    plt.xlim(min(ls), max(ls))
     plt.xlabel("lambda")
     plt.ylabel("DCF/minDCF")
+    #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/PWLR_LR_DCF_minDCF_plot.png")
+    #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/PWLR_LR_DCF_minDCF_plot_xval.png")
     plt.show()
 
-
-
+    
+    # non-prior-weighted logistic regression with preprocessing technique plot and minDCF minimum
     preproc_func = [
         (quadratic_feature_mapping, [], "Quadratic mapped LR"),
         (center_data, [], "Centered data LR"),
+        #(L2_normalization, [], "L2-normalized LR"),
         (z_normalization, [], "Z-normalized LR"),
         (withening, [], "Withened LR")
     ]
@@ -451,21 +483,21 @@ def main():
         min_dcfs = []
         llrs = []
         for l in ls:
-            """ 
-            ret = prep_func(DTR, *prep_args)
-            loc_DTR = ret[0]
-            loc_DVAL = prep_func(DVAL, *ret[1:])[0]
+            ### decomment/comment this part to use/not use held-out validation set
+            #ret = prep_func(DTR, *prep_args)
+            #loc_DTR = ret[0]
+            #loc_DVAL = prep_func(DVAL, *ret[1:])[0]
+            #lr = LogisticRegression(loc_DTR, LTR, label_dict, l)
+            #lr.fit()
+            #predictions, llr = lr.predict(loc_DVAL)
+            #dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
+            #min_dcfs.append(min_DCF_binary(pi, LVAL, llr)) 
 
-            lr = LogisticRegression(loc_DTR, LTR, label_dict, l)
-            lr.fit()
-            predictions, llr = lr.predict(loc_DVAL)
-            dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
-            min_dcfs.append(min_DCF_binary(pi, LVAL, llr)) 
-
-            """
+            ### decomment/comment this part to use/not use kfold validation
             llr, predictions, loc_LVAL = kfold_scores_pooling(D, L, LogisticRegression, {"l": l, "label_dict": label_dict}, preprocess_func=prep_func, preprocess_args=prep_args)
             dcfs.append(empirical_bayes_risk_binary(pi, loc_LVAL, llr))
             min_dcfs.append(min_DCF_binary(pi, loc_LVAL, llr))
+
             llrs.append(llr)
         plt.xscale('log', base=10)
         plt.grid(True, linestyle=':')
@@ -476,12 +508,19 @@ def main():
         plt.plot(ls, min_dcfs, linestyle="dashed", color=c, alpha=0.5)
         #plt.show()
         idx = np.argmin(min_dcfs)
+        print(idx)
         print(f"{desc:<40} optimal values with l = {ls[idx]:.10f} -> minDCF = {min_dcfs[idx]:.4f} | DCF = {dcfs[idx]:.4f}")
-
+   
+    # show plots of preprocessed non-weighted LR DCF and minDCF as a function of lambda
     plt.title("Preprocessed LR comparison")
     plt.legend(loc="upper left")
+    plt.ylim((0.2, 1.01))
+    plt.xlim(min(ls), max(ls))
+    #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/preproc_LR_DCF_minDCF_plot.png")
+    #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/preproc_LR_DCF_minDCF_plot_xval.png")
     plt.show()
 
+    # non-prior-weighted logistic regression plot and minDCF minimum using PCA
     preproc_func = []
     for m in range(6,0,-1):
         preproc_func.append((
@@ -495,21 +534,21 @@ def main():
         min_dcfs = []
         llrs = []
         for l in ls:
-            """ 
-            ret = prep_func(DTR, *prep_args)
-            loc_DTR = ret[0]
-            loc_DVAL = prep_func(DVAL, *ret[1:])[0]
+            ### decomment/comment this part to use/not use held-out validation set
+            #ret = prep_func(DTR, *prep_args)
+            #loc_DTR = ret[0]
+            #loc_DVAL = prep_func(DVAL, *ret[1:])[0]
+            #lr = LogisticRegression(loc_DTR, LTR, label_dict, l)
+            #lr.fit()
+            #predictions, llr = lr.predict(loc_DVAL)
+            #dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
+            #min_dcfs.append(min_DCF_binary(pi, LVAL, llr)) 
 
-            lr = LogisticRegression(loc_DTR, LTR, label_dict, l)
-            lr.fit()
-            predictions, llr = lr.predict(loc_DVAL)
-            dcfs.append(empirical_bayes_risk_binary(pi, LVAL, llr))
-            min_dcfs.append(min_DCF_binary(pi, LVAL, llr)) 
-
-            """
+            ### decomment/comment this part to use/not use kfold validation
             llr, predictions, loc_LVAL = kfold_scores_pooling(D, L, LogisticRegression, {"l": l, "label_dict": label_dict}, preprocess_func=prep_func, preprocess_args=prep_args)
             dcfs.append(empirical_bayes_risk_binary(pi, loc_LVAL, llr))
             min_dcfs.append(min_DCF_binary(pi, loc_LVAL, llr))
+
             llrs.append(llr)
         plt.xscale('log', base=10)
         plt.grid(True, linestyle=':')
@@ -522,12 +561,24 @@ def main():
         idx = np.argmin(min_dcfs)
         print(f"{desc:<40} optimal values with l = {ls[idx]:.10f} -> minDCF = {min_dcfs[idx]:.4f} | DCF = {dcfs[idx]:.4f}")
 
+    # show plots of non-weighted LR DCF and minDCF as a function of lambda using PCA
     plt.title("PCA LR comparison")
     plt.legend(loc="upper left")
+    plt.ylim((0.2, 1.01))
+    plt.xlim(min(ls), max(ls))
+    #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/PCA_LR_DCF_minDCF_plot.png")
+    #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/PCA_LR_DCF_minDCF_plot_xval.png")
     plt.show()
+     """
+    
+    #ls[35] = np.float(0.013219411484660288)
+    scores, predictions, KFLVAL = kfold_scores_pooling(D, L, LogisticRegression, {"label_dict": label_dict, "l": ls[35]}, preprocess_func=quadratic_feature_mapping)
+    print(f"LogReg | QuadFeatMap | l = {ls[35]:.10f} | Error Rate = {error_rate(KFLVAL, predictions)*100:.2f}% | minDCF = {min_DCF_binary(pi, KFLVAL, scores):.4f} | actDCF = {empirical_bayes_risk_binary(pi, KFLVAL, scores):.4f}")
+    
 
     # SELECTED MODEL:
     #   - Naive Bayes / no PCA (without calibration) (prior=0.1)
+    #   - Non-prior-weighted LogReg Quadratic Feature Mapping (without calibration) using lambda=0.013219411484660288
     
     # model training:
     # - train using training data split

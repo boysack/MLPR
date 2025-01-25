@@ -70,6 +70,7 @@ def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplo
     base_dpi = 50 * 6**0.7
     dpi = int(base_dpi/(plots_per_row**0.7))
     plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
+    plt.grid(True, linestyle=':')
     for i in range(D.shape[0]):
         for j in range(D.shape[0]):
             if subplots:
