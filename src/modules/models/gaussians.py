@@ -226,7 +226,7 @@ class TiedNaiveGModel(GaussianModel):
         return "Naive_Bayes_Tied_Covariance_Gaussian"
 
 class GaussianMixtureModel(Model):
-    def __init__(self, D, L = None, label_dict = None, l_priors = None, gmm = None, n = None, psi = 0.01, d = 10**-100, alpha = 0.1):
+    def __init__(self, D, L = None, label_dict = None, l_priors = None, gmm = None, n = None, psi = 0.01, d = 1e-6, alpha = 0.1):
         self.D = D
         # pass no L or no label dictionary to simulate a distribution over the whole dataset
         if L is None or label_dict is None:
@@ -254,10 +254,18 @@ class GaussianMixtureModel(Model):
         self.psi = psi
         
         # Number of Gaussian component
-        # TODO: deal even with number that aren't multiple of 2?
+        # TODO: deal even with number that aren't power of 2?
         if n is not None:
-            self.n = (2**np.round(np.log2(n))).astype(int)
+            if isinstance(n, list):
+                # different component number for each class
+                if len(n) != len(label_dict):
+                    raise Exception("A number of components equal to the number of class must be provided.")
+                self.n = {k:2**np.round(np.log2(e)).astype(int) for e, k in zip(n, label_dict.values())}
+            else:
+                # same component number for each class
+                self.n = {k:2**np.round(np.log2(n)).astype(int) for k in label_dict.values()}
         else:
+            #??
             self.n = None
             
         # stopping criterion for fitting function
@@ -270,12 +278,12 @@ class GaussianMixtureModel(Model):
         avg_loss = self.em()
         if self.n is not None:
             # LBG
-            n = len(self.gmm[0])
+            n = [len(gmm) for gmm in self.gmm.values()]
             avg_loss = [avg_loss]
-            while n < self.n:
+            while np.any(n < list(self.n.values())):
                 self.lbg()
                 avg_loss.append(self.em())
-                n = len(self.gmm[0])
+                n = [len(gmm) for gmm in self.gmm.values()]
         return avg_loss
         
     def em(self):
@@ -286,9 +294,11 @@ class GaussianMixtureModel(Model):
 
             while True:
                 l_marginal, _, l_posterior_g = logpdf_GMM(self.D[:, self.L==c], self.gmm[c])
-                l_likelihood = l_marginal.sum()
-                if l_likelihood - old_l_likelihood < self.d:
-                    old_l_likelihood = l_likelihood
+                #l_likelihood = l_marginal.sum()
+                # prof:
+                l_likelihood = l_marginal.mean()
+                if np.abs(l_likelihood - old_l_likelihood) < self.d:
+                    #old_l_likelihood = l_likelihood
                     break
                 old_l_likelihood = l_likelihood
 
@@ -296,15 +306,19 @@ class GaussianMixtureModel(Model):
 
                 self.gmm[c] = self.maximize(posterior_g, c)
             
-            c_l_likelihood[c] = l_likelihood/self.D.shape[1]
+            #c_l_likelihood[c] = l_likelihood/self.D.shape[1]
+            c_l_likelihood[c] = l_likelihood
 
         return c_l_likelihood
 
-    def maximize(self, posterior_g):
+    def maximize(self, posterior_g, c):
         pass
     
     def lbg(self):
         for c in self.label_dict.values():
+            if len(self.gmm[c]) >= self.n[c]:
+                # enough components for the class c
+                continue
             new_gmm = []
             for g in self.gmm[c]:
                 w_g = g[0]
@@ -327,7 +341,6 @@ class GaussianMixtureModel(Model):
 
     def get_scores(self, D):
         l_likelihoods = np.array([logpdf_GMM(D, self.gmm[label_int])[0] for label_int in self.label_dict.values()])
-
         return l_likelihoods
 
     def get_predictions(self, l_scores):
@@ -343,6 +356,9 @@ class GaussianMixtureModel(Model):
     # used to plot bayes error plot
     def set_threshold_from_priors_binary(self):
         pass
+    @staticmethod
+    def get_model_name():
+        pass
 
 class MVGMModel(GaussianMixtureModel):
     def maximize(self, posterior_g, c):
@@ -355,7 +371,10 @@ class MVGMModel(GaussianMixtureModel):
         C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
         w = Z_g/Z_g.sum()
 
-        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, C[:, :, i])) for i in range(len(self.gmm[0]))]
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, C[:, :, i])) for i in range(len(self.gmm[c]))]
+    @staticmethod
+    def get_model_name():
+        return "MVGM model"
 
 class NaiveGMModel(GaussianMixtureModel):    
     def maximize(self, posterior_g, c):
@@ -368,7 +387,10 @@ class NaiveGMModel(GaussianMixtureModel):
         C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
         w = Z_g/Z_g.sum()
 
-        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, (C[:, :, i]) * np.eye(C.shape[0]))) for i in range(len(self.gmm[0]))]
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, (C[:, :, i]) * np.eye(C.shape[0]))) for i in range(len(self.gmm[c]))]
+    @staticmethod
+    def get_model_name():
+        return "NGM model"
     
 class TiedGMModel(GaussianMixtureModel):
     def maximize(self, posterior_g, c):
@@ -381,9 +403,13 @@ class TiedGMModel(GaussianMixtureModel):
         C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
         w = Z_g/Z_g.sum()
 
-        C = sum([w[i]*C[:,:,i] for i in range(len(self.gmm[0]))])
+        C = sum([w[i]*C[:,:,i] for i in range(len(self.gmm[c]))])
 
-        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, C)) for i in range(len(self.gmm[0]))]
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, C)) for i in range(len(self.gmm[c]))]
+    
+    @staticmethod
+    def get_model_name():
+        return "TGM model"
 
 def logpdf_GAU_ND(D, mu = None, C = None):
     if np.isscalar(C):
@@ -407,8 +433,6 @@ def expected_bayes_cost(C, posteriors, is_log = False):
     return np.dot(C, posteriors)
 
 def logpdf_GMM(D, gmm):
-    # TODO: check if broadcasting is exploitable (since for too much high number of gaussian i think there's overfitting, probably some low number of it is
-    # sufficient to obtain maximum performance by this model, i.e. the list implementation is sufficient and more readable)
     l_joint_g = np.empty((len(gmm), D.shape[1]))
     for i, g in enumerate(gmm):
         w, mu, C = g
@@ -417,6 +441,7 @@ def logpdf_GMM(D, gmm):
 
     # log( sum_g( exp( l_joint ) ) )
     l_marginal_g = logsumexp(l_joint_g, axis=0)
+
     l_posterior_g = l_joint_g - l_marginal_g
 
     return l_marginal_g, l_joint_g, l_posterior_g

@@ -30,8 +30,8 @@ class SupportVectorMachine(Model):
         if kernel in self.kernel_dict:
             self.kernel = kernel
             self.kernel_func = self.kernel_dict[self.kernel]
-            kernel_args.append(xi)
-            self.kernel_args = kernel_args
+            self.kernel_args = kernel_args.copy()
+            self.kernel_args.append(xi)
         else:
             self.kernel = None
             self.kernel_func = original_kernel
@@ -142,7 +142,6 @@ def hat_H(D, L = None, Z = None, kernel_func = original_kernel, kernel_args = []
         if L is None:
             raise Exception("One between L and Z parameter must be passed to the function.")
         Z = 2 * L - 1
-    #print(*kernel_args)
     h_G = kernel_func(D, D, *kernel_args)
     h_Z = np.dot(col(Z), row(Z))
 

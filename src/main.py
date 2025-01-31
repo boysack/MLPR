@@ -1,17 +1,22 @@
 
 from modules.data.dataset import load, split_db_2to1
+from modules.models.support_vector_machine import SupportVectorMachine
 from modules.models.training import kfold_scores_pooling
-from modules.visualization.plots import scatter_hist_per_feat, correlation_heatmap, gaussian_hist_plot, bayes_error_plot_binary
-from modules.utils.operations import var, mean, cov, p_corr, trunc, effective_prior_binary
+from modules.visualization.plots import scatter_hist_per_feat, correlation_heatmap, gaussian_hist_plot, bayes_error_plot_binary, plot_svm_boundary_2d
+from modules.utils.operations import var, mean, cov, p_corr, trunc, effective_prior_binary, col
 from modules.utils.metrics import error_rate, calculate_overlap, empirical_bayes_risk_binary, min_DCF_binary
 from modules.features.dimensionality_reduction import lda, pca, pca_pipe, lda_pipe
-from modules.features.transformation import L2_normalization, center_data, quadratic_feature_mapping, withening, z_normalization
+from modules.features.transformation import L2_normalization, center_data, no_op, quadratic_feature_mapping, withening, z_normalization
 from modules.models.mean_classifier import LdaBinaryClassifier
-from modules.models.gaussians import MVGModel, TiedGModel, NaiveGModel, TiedNaiveGModel
+from modules.models.gaussians import MVGModel, TiedGModel, NaiveGModel, TiedNaiveGModel, MVGMModel, NaiveGMModel, TiedGMModel
 from modules.models.logistic_regression import LogisticRegression
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
+from collections import namedtuple
+
+from tqdm import tqdm
 
 def main():
     # REMEMBER: the load function ensures that, for dataset labeled with 0 for false and 1 for true, the data is correctly labeled in the label_dictionary
@@ -20,10 +25,10 @@ def main():
 
     ######### LAB 2 #########
     ######### FEATURE VISUALIZATION AND ANALYSIS (using whole dataset)
+    scatter_hist_per_feat(D, L, label_dict)
     """ 
-    scatter_hist_per_feat(D, L, label_dict, plot_title="Spoofing data", save_path="./project/plots/original_data_scatter_matrix.png")
-    correlation_heatmap(D)
-    #scatter_hist_per_feat(D, L, label_dict, plot_title="Spoofing data")
+    #scatter_hist_per_feat(D, L, label_dict, save_path="./project/plots/original_data_scatter_matrix.png")
+    #correlation_heatmap(D)
     #W, _ = lda(D, L, m=1)
     #print(W)
      """
@@ -40,18 +45,17 @@ def main():
 
     # plot scatter matrix of projected data onto principal components
     P_pca_m6, V_pca_m6, D_pca_m6 = pca(D, m=6)
-    #scatter_hist_per_feat(D_pca_m6, L, label_dict, save_path="./project/plots/PCA_6_scatter_matrix.png")
+    scatter_hist_per_feat(D_pca_m6, L, label_dict, save_path="./project/plots/PCA_6_scatter_matrix.png")
     #scatter_hist_per_feat(D_pca_m6, L, label_dict)
     
     # compute differences in variance and mean wrt classes
     #print(np.abs(var(D_pca_m6[:,L==0])-var(D_pca_m6[:,L==1])))
     #print(np.abs(mean(D_pca_m6[:,L==0])-mean(D_pca_m6[:,L==1])))
-
+    
     # plot scatter matrix of projected data onto LDA directions
-    #W_lda_m1, D_lda_m1 = lda(D, L, m=1)
-    #scatter_hist_per_feat(D_lda_m1, L, label_dict, save_path="./project/plots/LDA_1_scatter_matrix.png")
+    W_lda_m1, D_lda_m1 = lda(D, L, m=1)
+    scatter_hist_per_feat(D_lda_m1, L, label_dict, save_path="./project/plots/LDA_1_scatter_matrix.png")
     #scatter_hist_per_feat(D_lda_m1, L, label_dict)
-
     # binary classification using LDA
     lmc = LdaBinaryClassifier(DTR, LTR, label_dict)
     lmc.fit()
@@ -109,19 +113,19 @@ def main():
     """ 
     models = [
         MVGModel,
-        TiedGModel,
         NaiveGModel,
+        TiedGModel,
         TiedNaiveGModel,
-        LdaBinaryClassifier
+        #LdaBinaryClassifier
     ]
 
     P_pca_m6, _, _ = pca(DTR, m=6)
 
-    descs = ["no_pca"]
+    descs = ["RAW"]
     tr_datas = [DTR]
     vl_datas = [DVAL]
     for m in range(6,0,-1):
-        descs.append(f"pca m={m}")
+        descs.append(f"PCA(m={m})")
         tr_datas.append(np.dot(P_pca_m6[:, :m].T, DTR))
         vl_datas.append(np.dot(P_pca_m6[:, :m].T, DVAL))
     
@@ -139,21 +143,24 @@ def main():
 
     results = {}
 
+    pi = .1
+
     for model_cstr in models:
         print()
+        print(f"{model_cstr.get_model_name():5.5}")
         for desc, tr_data, vl_data in zip(descs, tr_datas, vl_datas):
-            print(desc)
-
-            model = model_cstr(tr_data, LTR, label_dict)
+            
+            model = model_cstr(tr_data, LTR, label_dict, l_priors=np.log([(1-pi),pi]))
             model.fit()
             predictions, scores = model.predict(vl_data)
 
             results[(m, model.get_model_name())] = error_rate(LVAL, predictions)
-            print(f"{model.get_model_name()} |{"".join([" "+str(k)+": "+str(v)+" |" for k, v in model.get_model_params().items()])} error_rate = {results[(m, model.get_model_name())]*100:.2f}%")
+            #print(f"{model.get_model_name():5.5} |{"".join([" "+str(k)+": "+str(v)+" |" for k, v in model.get_model_params().items()])} error_rate = {results[(m, model.get_model_name())]*100:5.2f}% | minDCF = {min_DCF_binary(.1, LVAL, scores):.4f} | actDCF = {empirical_bayes_risk_binary(.1, LVAL, scores):.4f}")
             #bayes_error_plot_binary(LVAL, scores, plot_title=f"{model.get_model_name()} / {desc}")
-    
+            print(f"& {results[(m, model.get_model_name())]*100:.2f}\% & {min_DCF_binary(pi, LVAL, scores):.4f} & {empirical_bayes_risk_binary(pi, LVAL, scores):.4f} & {empirical_bayes_risk_binary(pi, LVAL, scores)-min_DCF_binary(pi, LVAL, scores):.4f}")
+     """
     #print(f"Best result = {list(results.keys())[np.argmin(list(results.values()))]}")
-    """
+   
 
     # print per class covariance and correlation
     """ 
@@ -212,157 +219,7 @@ def main():
 
     ######### LAB 7 #########
     ######### DIFFERENT APPLICATION | MINIMUM DETECTION COSTS | ROC CURVES | BAYES ERROR PLOTS
-    """ 
-    # try this models
-    models = [
-        MVGModel,
-        NaiveGModel,
-        TiedGModel,
-        TiedNaiveGModel
-    ]
 
-    P_pca_m6, _, _ = pca(DTR, m=6)
-
-    # try using this preprocessing techniques
-    tr_datas = [DTR]
-    vl_datas = [DVAL]
-    descs = ["no PCA"]
-    for m in range(6,0,-1):
-        descs.append(f"PCA {m}")
-        tr_datas.append(np.dot(P_pca_m6[:,:m].T, DTR))
-        vl_datas.append(np.dot(P_pca_m6[:,:m].T, DVAL))
-
-
-    # try this working points
-    parameters = []
-    parameters.append((0.5,1.0,1.0))
-    parameters.append((0.9,1.0,1.0))
-    parameters.append((0.1,1.0,1.0))
-    parameters.append((0.5,1.0,9.0))
-    parameters.append((0.5,9.0,1.0))
-
-    # calculate effective prior of working points
-    print("\nEffective priors")
-    for p in parameters:
-        print(f"prior={p[0]} | C_fn={p[1]} | C_fp={p[2]} => eff prior={effective_prior_binary(p[0], p[1], p[2])}")
-    
-    # remove last two, since same as effective prior to other already considered
-    parameters.remove((0.5,1.0,9.0))
-    parameters.remove((0.5,9.0,1.0))
-    
-    # get results from classifications
-    min_dcfs = {}
-    dcfs = {}
-    miscal_loss = {}
-    llrs = []
-
-    app_results = {}
-
-    # for each model
-    for model_cstr in models:
-        print()
-        to_print = ""
-
-        # for each preprocessing configuration
-        for tr_data, vl_data, desc in zip(tr_datas, vl_datas, descs):
-            first_it = True
-
-            # for each working point
-            for p in parameters:
-                print("\n\n")
-                print(p)
-
-                #print(f"prior={p[0]} | C_fn={p[1]} | C_fp={p[2]}")
-
-                model = model_cstr(tr_data, LTR, label_dict, l_priors=np.log([1-p[0], p[0]]), cost_matrix=np.array([
-                    [0, p[1]],
-                    [p[2], 0]
-                ]))
-                model.fit()
-                predictions, scores = model.predict(vl_data)
-
-                llrs.append(scores)
-                dcf = empirical_bayes_risk_binary(prior=p[0], L=LVAL, llr=scores, cost_matrix=np.array([
-                    [0, p[1]],
-                    [p[2], 0]
-                ]))
-
-                min_dcf = min_DCF_binary(prior=p[0], L=LVAL, llr=scores, cost_matrix=np.array([
-                    [0, p[1]],
-                    [p[2], 0]
-                ]))
-
-                min_dcfs[f"{model.get_model_name():<40} | {desc:<6} | {p} "] = min_dcf
-
-                dcfs[f"{model.get_model_name():<40} | {desc:<6} | {p} "] = dcf
-
-                miscal_loss[f"{model.get_model_name():<40} | {desc:<6} | {p} "] = dcf - min_dcf
-
-                # used to compare models in the context of a specific application
-                if p not in app_results.keys():
-                    app_results[p] = {}
-                app_results[p][f"{model.get_model_name():<40} | {desc:<6}"] = {
-                    "dcf": dcf,
-                    "min_dcf": min_dcf,
-                    "miscal_loss": dcf - min_dcf
-                }
-
-                # for each combination of model / preprocessing, save/show bayes error plot
-                if first_it:
-                    #bayes_error_plot_binary(LVAL, scores, plot_title=f"{model.get_model_name()} / {desc}", start=-4, stop=4, save_path=f"./project/plots/bayes_error_plot_{model.get_model_name()}_{"_".join(desc.split())}.png", show=False)
-                    bayes_error_plot_binary(LVAL, scores, plot_title=f"{model.get_model_name()} / {desc}", start=-4, stop=4, show=False)
-                    
-                    # save with the application lines (make sense just using effective prior)
-                    
-                    #for p in parameters:
-                    #    plt.axvline(x = np.log(p[0]/(1-p[0])), color = 'r', alpha=0.4) 
-                    #plt.savefig(f"./project/plots/bayes_error_plot_{model.get_model_name()}_{"_".join(desc.split())}_with_apps_line.png")
-                    
-                    #plt.savefig(f"./project/plots/bayes_error_plot_{model.get_model_name()}_{"_".join(desc.split())}.png")
-                    #plt.show()
-                    plt.clf()
-                    first_it = False
-
-                # print classification results
-                print(f"{model.get_model_name()} | {"".join([f"{str(k)}: {v:.1f} | " for k, v in model.get_model_params().items()])} {desc:<6} | error_rate = {error_rate(LVAL, predictions)*100:05.2f}% | DCF = {dcf:.4f} | minDCF = {min_dcf:.4f} | miscalibration loss = {dcf-min_dcf:.4f}")
-
-                # string used to compile tables
-                to_print = " & ".join([to_print, f"{dcf:.4f} {min_dcf:.4f} {(dcf-min_dcf):.4f}"])
-            #print(to_print)
-    print()
-    
-    # order by min_dcf
-    min_dcfs = dict(sorted(min_dcfs.items(), key=lambda item: item[1]))
-    print()
-    for k, v in min_dcfs.items():
-        print(f"{k} -> minDCF = {v:.4f}")
-
-    # order by dcf
-    dcfs = dict(sorted(dcfs.items(), key=lambda item: item[1]))
-    print()
-    for k, v in dcfs.items():
-        print(f"{k} -> DCF = {v:.4f}")
-
-    # order by miscalibration loss
-    miscal_loss = dict(sorted(miscal_loss.items(), key=lambda item: item[1]))
-    print()
-    for k, v in miscal_loss.items():
-        print(f"{k} -> miscalibration loss = {v:.4f}")
-
-    # order, for each application, by min_dcf, dcf or miscalibration loss
-    for app_desc, app_dict in app_results.items():
-        print(app_desc)
-        app_dict = dict(sorted(app_dict.items(), key=lambda item: item[1]["min_dcf"]))
-        #app_dict = dict(sorted(app_dict.items(), key=lambda item: item[1]["dcf"]))
-        #app_dict = dict(sorted(app_dict.items(), key=lambda item: item[1]["miscal_loss"]))
-        sum = 0
-        for k, v in app_dict.items():
-            print(f"{k} -> DCF = {v['dcf']:.4f} | minDCF = {v['min_dcf']:.4f} | miscal. loss = {v['miscal_loss']:.4f}")
-            #print(f"{k} -> miscal. loss = {v['miscal_loss']:.4f}")
-            sum += v["min_dcf"]
-        print(f"{k} -> avg min_DCF = {sum/len(app_dict)}")
-
- """
     # chosen configuration
     """ final_config = [
         (MVGModel, DTR, DVAL, "no PCA"),
@@ -374,7 +231,6 @@ def main():
     ######### LAB 8 #########
     ######### LOGISTIC REGRESSION
 
-    
     ls = np.logspace(-4, 2, 100)
     pi = 0.1
 
@@ -570,15 +426,222 @@ def main():
     #plt.savefig(f"./project/plots/logistic_regression_minDCF_DCF_lambda_plots/PCA_LR_DCF_minDCF_plot_xval.png")
     plt.show()
      """
-    
+    """ 
     #ls[35] = np.float(0.013219411484660288)
     scores, predictions, KFLVAL = kfold_scores_pooling(D, L, LogisticRegression, {"label_dict": label_dict, "l": ls[35]}, preprocess_func=quadratic_feature_mapping)
     print(f"LogReg | QuadFeatMap | l = {ls[35]:.10f} | Error Rate = {error_rate(KFLVAL, predictions)*100:.2f}% | minDCF = {min_DCF_binary(pi, KFLVAL, scores):.4f} | actDCF = {empirical_bayes_risk_binary(pi, KFLVAL, scores):.4f}")
+     """
     
+    ######### LAB 9 #########
+    ######### SUPPORT VECTOR MACHINE
 
+    # optional part
+    """
+    trans_DTR = (DTR[-2:,:] * DTR[-2:,:]).sum(axis=0)
+    print(trans_DTR.shape)
+    plt.scatter(DTR[4,::10][LTR[::10]==0], DTR[5,::10][LTR[::10]==0], s=1, alpha=.5)
+    plt.scatter(DTR[4,::10][LTR[::10]==1], DTR[5,::10][LTR[::10]==1], s=1, alpha=.5)
+
+    plt.figure(figsize=[7,1])
+    plt.ylim([.5,-.5])
+    plt.grid(True, linestyle=':')
+    plt.xticks(color='w') 
+    plt.yticks(color='w')
+
+    plt.scatter(trans_DTR[:][LTR[:]==0], [.1]*trans_DTR[:][LTR[:]==0].shape[0], s=1)
+    plt.scatter(trans_DTR[:][LTR[:]==1], [-.1]*trans_DTR[:][LTR[:]==1].shape[0], s=1)
+    plt.show()
+
+    exit()  
+    """
+
+    Configuration = namedtuple("Configuration", ["tr_data", "tr_label", "val_data", "val_label", "preproc_f", "preproc_a", "model_a", "desc", "plot_title", "line_title"])
+
+    confs = [
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], no_op,       [], {"xi":1},
+                      "SVM_xi_1",               r"SVM - $\sqrt{K}$ = 1", r"SVM"),
+
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], center_data, [], {"xi":1}, 
+                      "SVM_centered_data_xi_1", r"SVM - $\sqrt{K}$ = 1 - centered data", r"SVM centered"),
+
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], no_op,       [], {"kernel":"polynomial", "xi":0, "kernel_args":[2, 1]}, 
+                      "SVM_poly_xi_0_d_2_c_1",  r"SVM - poly (d=2, c=1) - $\sqrt{K}$ = 0", r"SVM poly"),
+
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], no_op,       [], {"kernel":"radial_basis_function", "xi":1, "kernel_args":[np.exp(-4)]}, 
+                      "SVM_RBF_xi_1_g_e^-4",    r"SVM - RBF ($\gamma=e^{{-4}}$) - $\sqrt{K}$ = 1", r"SVM RBF $\gamma = \exp{-4}$"),
+
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], no_op,       [], {"kernel":"radial_basis_function", "xi":1, "kernel_args":[np.exp(-3)]}, 
+                      "SVM_RBF_xi_1_g_e^-3)",   r"SVM - RBF ($\gamma=e^{{-3}}$) - $\sqrt{K}$ = 1", r"SVM RBF $\gamma = \exp{-3}$"),
+
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], no_op,       [], {"kernel":"radial_basis_function", "xi":1, "kernel_args":[np.exp(-2)]}, 
+                      "SVM_RBF_xi_1_g_e^-2)",   r"SVM - RBF ($\gamma=e^{{-2}}$) - $\sqrt{K}$ = 1", r"SVM RBF $\gamma = \exp{-2}$"),
+
+        Configuration(DTR[:,:], LTR[:], DVAL[:,:], LVAL[:], no_op,       [], {"kernel":"radial_basis_function", "xi":1, "kernel_args":[np.exp(-1)]}, 
+                      "SVM_RBF_xi_1_g_e^-1)",   r"SVM - RBF ($\gamma=e^{{-1}}$) - $\sqrt{K}$ = 1", r"SVM RBF $\gamma = \exp{-1}$"),
+    ]
+
+    # TODO: try using even parameters = [np.exp(-0.5), np.exp(-0.25)] (the configuration achieving best performance have higher value of gamma)
+
+    plot_points = {
+        "SVM_centered_data_xi_1": r"SVM / SVM centered_data ($\xi = 1.0$)",
+        "SVM_poly_xi_0_d_2_c_1": r"SVM poly ($\xi = 1.0$)",
+        "SVM_RBF_xi_1_g_e^-1)": r"SVM RBF ($\xi = 1.0$)"
+    }
+
+    """
+    pi = 0.1
+    cs = np.logspace(-5, 0, 11)
+    results = {}
+    plot_idx = 0
+
+    #for conf in tqdm(confs):
+    for conf in confs:
+        act_dcfs = []
+        min_dcfs = []
+        break
+    
+        if "kernel" in conf.model_a.keys() and conf.model_a["kernel"] == "radial_basis_function":
+            cs = np.logspace(-3, 2, 11)
+        for c in cs:
+            ret = conf.preproc_f(conf.tr_data, *conf.preproc_a)
+            tr_data = ret[0]
+            val_data = conf.preproc_f(conf.val_data, *ret[1:])[0]
+
+            #svm = SupportVectorMachine(tr_data, conf.tr_label, label_dict, C=c, **conf.model_a)
+            #svm.fit()
+            # save the model
+            #with open(f"./project/saved_models/{conf.desc}_c_{c:.5f}.pkl", "wb") as file:
+            #    pickle.dump(svm, file)
+
+            # load the model
+            model_desc = f"{conf.desc}_c_{c:.5f}"
+            with open(f"./project/saved_models/{model_desc}.pkl", "rb") as file:
+                svm = pickle.load(file)
+
+            predictions, scores = svm.predict(val_data)
+
+            act_dcf = empirical_bayes_risk_binary(pi, conf.val_label, scores)
+            act_dcfs.append(act_dcf)
+
+            min_dcf = min_DCF_binary(pi, conf.val_label, scores)
+            min_dcfs.append(min_dcf)
+            
+            results[model_desc] = {
+                "model": svm,
+                "model_desc": model_desc,
+                "min_dcf": min_dcf,
+                "act_dcf": act_dcf,
+                "error_rate": error_rate(conf.val_label, predictions)
+            }
+        plt.grid(True, linestyle=':')
+        plt.xscale('log', base=10)
+        plt.xlim(min(cs), max(cs))
+        plt.xlabel("C")
+        plt.ylabel("DCF/minDCF")
+        plt.ylim((-0.01, 1.01))
+
+        line = plt.plot(cs, act_dcfs, label=conf.line_title, alpha=0.5)
+        c = line[0]._color
+
+        plt.plot(cs, min_dcfs, linestyle="dashed", color=c, alpha=0.5)
+
+        #plt.title(conf.plot_title)
+        #plt.show()
+
+        if conf.desc in plot_points.keys():
+            plt.title(plot_points[conf.desc])
+            plt.legend(loc="upper right")
+            #plt.savefig(f"./project/plots/svm_minDCF_DCF_C_plots/SVM_{plot_idx}.png")
+            #plt.show()
+            plot_idx+=1
+
+    print("Result sorted based on minDCF")
+    sorted_results = sorted(results, key=lambda k: results[k]["min_dcf"])
+    for res_k in sorted_results:
+        res_v = results[res_k]
+        model = res_v["model"]
+        print(f"Model: {res_v["model_desc"]:<33} | Error Rate = {res_v["error_rate"]*100:.2f}% | minDCF = {res_v["min_dcf"]:.4f} | actDCF = {res_v["act_dcf"]:.4f} | primal loss = {model.svm_primal_obj_binary(model.w):#.6e} | dual loss = {model.svm_dual_obj_binary(model.alpha)[0].item():#.6e} | duality gap ={model.get_duality_gap():#.6e}")
+
+    print("Result sorted based on duality gap")
+    sorted_results = sorted(results, key=lambda k: results[k]["model"].get_duality_gap())
+    for res_k in sorted_results:
+        res_v = results[res_k]
+        model = res_v["model"]
+        print(f"Model: {res_v["model_desc"]:<33} | Error Rate = {res_v["error_rate"]*100:.2f}% | minDCF = {res_v["min_dcf"]:.4f} | actDCF = {res_v["act_dcf"]:.4f} | primal loss = {model.svm_primal_obj_binary(model.w):#.6e} | dual loss = {model.svm_dual_obj_binary(model.alpha)[0].item():#.6e} | duality gap ={model.get_duality_gap():#.6e}")
+
+    print("Best model")
+    best_model_k = min(results, key=lambda k: results[k]["min_dcf"])
+    best_model = results[best_model_k]["model"]
+    print(f"Model: {results[best_model_k]["model_desc"]} | Error Rate = {results[best_model_k]["error_rate"]*100:.2f}% | minDCF = {results[best_model_k]["min_dcf"]:.4f} | actDCF = {results[best_model_k]["act_dcf"]:.4f} | primal loss = {best_model.svm_primal_obj_binary(best_model.w):#.6e} | dual loss = {best_model.svm_dual_obj_binary(best_model.alpha)[0].item():#.6e} | duality gap ={best_model.get_duality_gap():#.6e}")
+    """
+    # optional part:
+    """ 
+    cs = np.logspace(-5, 0, 11)
+    for c in tqdm(cs[10:]):
+        svm = SupportVectorMachine(DTR, LTR, label_dict, C=c, xi=0, kernel="polynomial", kernel_args=[4,1])
+        svm.fit()
+        with open(f"./project/saved_models/opt/SVM_poly_xi_0_d_4_c_1_c_{c:.5f}.pkl", "wb") as file:
+            pickle.dump(svm, file)
+    """
+    
+    # plot decision boundaries of the chosen model
+    """ with open(f"./project/saved_models/SVM_RBF_xi_1_g_e^-2)_c_31.62278.pkl", "rb") as file:
+        svm = pickle.load(file)
+    plot_svm_boundary_2d(svm, DTR, LTR, dim_to_keep=[4,5]) """
+
+    ######### LAB 10 #########
+    ######### GAUSSIAN MIXTURE MODEL
+    """ 
+    models = [
+        MVGMModel,
+        NaiveGMModel,
+        TiedGMModel
+    ]
+
+    ns = [1,2,4,8,16,32]
+    #ns = [1]
+    results = {}
+    #pbar = tqdm(total=len(models)*len(ns)*len(ns))
+    for n_T in ns:
+        break
+        for n_F in ns:
+            #print(f"Components number = n_T = {n_T}, n_F = {n_F}")
+            for model_cstr in models:
+                # n = [false_num, true_num]
+                n = [n_F, n_T]
+                model = model_cstr(DTR, LTR, label_dict, l_priors=np.log([.9,.1]), n=n, d=1e-5)
+                model.fit()
+                predictions, scores = model.predict(DVAL)
+                llr = scores[1,:] - scores[0,:]
+                results[f"{model.get_model_name():<10}(n_T={n[1]:>2}, n_F={n[0]:>2})"] = {
+                    "model": model,
+                    "prior": .1,
+                    "error_rate": error_rate(LVAL, predictions),
+                    "min_dcf": min_DCF_binary(.1, LVAL, llr),
+                    "act_dcf": empirical_bayes_risk_binary(.1, LVAL, llr),
+                    "llr": llr
+                }
+                #print(f"Model components = gmm[1] = {len(model.gmm[1])}, gmm[0] = {len(model.gmm[0])}")
+                #print(f"{model.get_model_name():<10} -> Error Rate = {error_rate(LVAL, predictions)*100:.2f}% | minDCF = {min_DCF_binary(.1, LVAL, llr):.4f} | actDCF = {empirical_bayes_risk_binary(.1, LVAL, llr):.4f}")
+                #pbar.update(1)
+    #pbar.close()
+    #with open("./project/saved_models/GMM_results.pkl", "wb") as file:
+    #    pickle.dump(results, file)
+    with open("./project/saved_models/GMM_results.pkl", "rb") as file:
+        results = pickle.load(file)
+
+    sorted_k = sorted(results, key=lambda k: results[k]["min_dcf"])
+    for k in sorted_k:
+        res = results[k]
+        print(f"{k:<26} -> Error Rate = {res["error_rate"]*100:>5.2f}% | minDCF = {res["min_dcf"]:.4f} | actDCF = {res["act_dcf"]:.4f}")
+     """
+    
     # SELECTED MODEL:
-    #   - Naive Bayes / no PCA (without calibration) (prior=0.1)
-    #   - Non-prior-weighted LogReg Quadratic Feature Mapping (without calibration) using lambda=0.013219411484660288
+    #   - GM : Naive Bayes / no PCA (without calibration) (prior=0.1)
+    #   - LR : Non-prior-weighted LogReg Quadratic Feature Mapping (without calibration) using lambda=0.013219411484660288
+    #   - SVM: RBF using xi=1, gamma=e^-2, C=31.62278 (name = SVM_RBF_xi_1_g_e^-2)_c_31.62278.pkl)
+    #       - poly using xi=0 d=2 c=1 C=0.00003 ( this achieve a better duality gap, is it worth to consider? )
+    #   - GMM: Naive using components: 16(T) and 8(F) and default parameters
     
     # model training:
     # - train using training data split

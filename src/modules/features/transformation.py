@@ -67,3 +67,6 @@ def quadratic_feature_mapping(D):
     
     # Concatenate the original features with the quadratic features
     return (np.vstack([quadratic_features, D]), )
+
+def no_op(D):
+    return (D, )

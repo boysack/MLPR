@@ -61,40 +61,62 @@ def fd_optimal_bins(D: ndarray):
     nbins = max(1, nbins)
     return nbins
 
-def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplots=True, plot_title = None, show = True, save_path = None):
-    # TODO: fix bug: if subplots=False it show an empty plot in the end
-
+def scatter_hist_per_feat(D, L, label_dict, feature_dict=None, bins=None, subplots=True, plot_title=None, show=True, save_path=None):
     plots_per_row = D.shape[0]
     
     screen_width, screen_height = get_screen_size()
-    base_dpi = 50 * 6**0.7
-    dpi = int(base_dpi/(plots_per_row**0.7))
-    plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
-    plt.grid(True, linestyle=':')
-    for i in range(D.shape[0]):
-        for j in range(D.shape[0]):
-            if subplots:
-                pos = plots_per_row*i+j+1
-                plt.subplot(plots_per_row, plots_per_row, pos)
-            else:
-                plt.figure(layout="tight", figsize=(screen_width/dpi,(screen_height/dpi)-0.7), dpi=dpi)
+    base_dpi = 60 * 6**0.7
+    dpi = int(base_dpi / (plots_per_row**0.7))
+    fig, axes = plt.subplots(plots_per_row, plots_per_row, figsize=(screen_width/dpi, (screen_height/dpi)-0.7), dpi=dpi)
+
+    # Check if axes is a single Axes object (when subplots is 1x1)
+    if not isinstance(axes, np.ndarray):
+        axes = np.array([[axes]])
+
+    # Make each subplot square by setting the aspect ratio to equal
+    for i in range(plots_per_row):
+        for j in range(plots_per_row):
+            ax = axes[i, j]  # Access the specific subplot (ax)
+            
             for key, value in label_dict.items():
-                filtered_D_i = D[i, L==value]
+                filtered_D_i = D[i, L == value]
                 if i == j:
-                    if bins is not None:
-                        b = bins
-                    else:
-                        b = fd_optimal_bins((filtered_D_i).flatten())
-                    plt.hist(filtered_D_i, bins=b, alpha=0.5, label=key, density=True)
+                    # Histogram on diagonal
+                    b = bins if bins is not None else fd_optimal_bins(filtered_D_i.flatten())
+                    ax.hist(filtered_D_i, bins=b, alpha=0.5, label=key, density=True)
+                    # Only show vertical grid on the histograms (diagonal plots)
+                    ax.grid(True, linestyle=":", alpha=0.6, axis='x')  # Only vertical grid
                 else:
-                    filtered_D_j = D[j, L==value]
-                    plt.scatter(filtered_D_j, filtered_D_i, label=key, s=5, alpha=.5)
-            plt.legend(loc='upper right')
+                    filtered_D_j = D[j, L == value]
+                    ax.scatter(filtered_D_j, filtered_D_i, label=key, s=5, alpha=0.5)
+                    ax.grid(True, linestyle=":", alpha=0.6)
+
+            # Make ticks invisible (but keep them for grid)
+            ax.tick_params(axis='both', which='both', length=0)
+
+            # Only remove Y ticks for non-first columns
+            if i == 0 and j == plots_per_row - 1:
+                ax.yaxis.set_label_position("right")
+                ax.yaxis.tick_right()
+            elif j != 0 or (j == 0 and i == 0):
+                ax.set_yticklabels([])
+            # Only remove X ticks for non-last rows
+            if i != plots_per_row - 1:
+                ax.set_xticklabels([])
+
+            # Only put legend on the top-right plot
+            if i == 0 and j == plots_per_row - 1:
+                ax.legend(loc='upper right')
+
+    # Adjust layout to remove white space around subplots
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0, hspace=0)
 
     if plot_title:
-        plt.title(plot_title)
+        fig.suptitle(plot_title)
+
     if save_path:
         plt.savefig(save_path)
+
     if show:
         plt.show()
 
@@ -234,3 +256,46 @@ def roc(P_fn, P_fp, plot_title = None, show = True, save_path = None):
         plt.savefig(save_path)
     if show:
         plt.show()
+
+def plot_svm_boundary_2d(model, D, L, dim_to_keep=[1,2], grid_resolution=100, margin=0.2):
+    if len(dim_to_keep) != 2:
+        raise Exception("Can plot just 2D decision boundary: choose which features to keep.")
+    # select only the last two features
+    D_reduced = D[dim_to_keep, :]
+
+    x_min, x_max = D_reduced[0, :].min() - margin, D_reduced[0, :].max() + margin
+    y_min, y_max = D_reduced[1, :].min() - margin, D_reduced[1, :].max() + margin
+
+    xx, yy = np.meshgrid(
+        np.linspace(x_min, x_max, grid_resolution),
+        np.linspace(y_min, y_max, grid_resolution)
+    )
+
+    grid_points = np.vstack([xx.ravel(), yy.ravel()])
+    fixed_values = mean(np.delete(D, dim_to_keep, axis=0))
+    samples = fixed_values @ np.ones((1, grid_points.shape[1]))
+    for i in range(len(dim_to_keep)):
+        samples = np.insert(samples, dim_to_keep[i], grid_points[i,:], axis=0)
+
+    Z = model.get_scores(samples)
+    Z = Z.reshape(xx.shape)
+
+    plt.contourf(xx, yy, Z, levels=[-1, 0, 1], alpha=0.1, colors=["blue", "black", "red"])
+    plt.contour(xx, yy, Z, levels=[0], colors="black", linewidths=2)  # Decision boundary
+    plt.contour(xx, yy, Z, levels=[-1, 1], colors="red", linestyles="dashed")  # Margins
+
+    for label in np.unique(L):
+        if label == 0:
+            l = "False"
+        else:
+            l = "True"
+        plt.scatter(
+            D_reduced[0, L == label], D_reduced[1, L == label],
+            label=f"{l}", alpha=0.8, s=1
+        )
+
+    plt.xlabel(f"Feature {dim_to_keep[0]}")
+    plt.ylabel(f"Feature {dim_to_keep[1]}")
+    plt.legend()
+    plt.title(f"SVM Decision Boundary (Features [{dim_to_keep[0]+1, dim_to_keep[1]+1}])")
+    plt.show()
