@@ -206,7 +206,7 @@ def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21
             DCFs.append(empirical_bayes_risk_binary(prior=eff_prior, L=L, llr=llr, true_idx=true_idx))
             minDCFs.append(min_DCF_binary(prior=eff_prior, P_fn=P_fn, P_fp=P_fp, true_idx=true_idx))
 
-        line = plt.plot(eff_prior_log_odds, minDCFs, label=f'{min_DCF_prefix} min DCF'.strip(), linestyle="dashed", alpha=alpha)
+        line = plt.plot(eff_prior_log_odds, minDCFs, linestyle="dashed", alpha=alpha)
         color = line[0]._color
     else:
         for eff_prior in eff_priors:
@@ -228,6 +228,8 @@ def bayes_error_plot_binary(L, llr, true_idx = 1, start = -3, stop = 3, num = 21
     ylow = min(DCFs + minDCFs)
     ymax = max(DCFs + minDCFs)
     ymin = ymax - (ymax - ylow)*4/3
+    ymin = 0
+    ymax = 1
     plt.ylim(ymin, ymax)
 
     plt.grid(True, linestyle=':')
@@ -257,7 +259,7 @@ def roc(P_fn, P_fp, plot_title = None, show = True, save_path = None):
     if show:
         plt.show()
 
-def plot_svm_boundary_2d(model, D, L, dim_to_keep=[1,2], grid_resolution=100, margin=0.2):
+def plot_svm_boundary_2d_binary(model, D, L, dim_to_keep=[1,2], grid_resolution=100, margin=0.2, plot_title=None):
     if len(dim_to_keep) != 2:
         raise Exception("Can plot just 2D decision boundary: choose which features to keep.")
     # select only the last two features
@@ -297,5 +299,54 @@ def plot_svm_boundary_2d(model, D, L, dim_to_keep=[1,2], grid_resolution=100, ma
     plt.xlabel(f"Feature {dim_to_keep[0]}")
     plt.ylabel(f"Feature {dim_to_keep[1]}")
     plt.legend()
-    plt.title(f"SVM Decision Boundary (Features [{dim_to_keep[0]+1, dim_to_keep[1]+1}])")
+    if plot_title is not None:
+        plt.title(plot_title)
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.show()
+
+def plot_boundary_2d_binary(model, D, L, dim_to_keep=[1,2], grid_resolution=100, margin=.5, plot_title=None):
+    if len(dim_to_keep) != 2:
+        raise Exception("Can plot just 2D decision boundary: choose which features to keep.")
+    # select only the last two features
+    D_reduced = D[dim_to_keep, :]
+
+    x_min, x_max = D_reduced[0, :].min() - margin, D_reduced[0, :].max() + margin
+    y_min, y_max = D_reduced[1, :].min() - margin, D_reduced[1, :].max() + margin
+
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, grid_resolution), 
+                         np.linspace(y_min, y_max, grid_resolution))
+
+    
+    grid_points = np.vstack([xx.ravel(), yy.ravel()])
+    fixed_values = mean(np.delete(D, dim_to_keep, axis=0))
+    samples = fixed_values @ np.ones((1, grid_points.shape[1]))
+    for i in range(len(dim_to_keep)):
+        samples = np.insert(samples, dim_to_keep[i], grid_points[i,:], axis=0)
+
+    ll = model.get_scores(samples)
+    # addapt to work even directly with llrs
+    llr = ll[1] - ll[0] # binary
+    llr = llr.reshape(xx.shape)
+
+    # Plot decision boundary
+    plt.contourf(xx, yy, llr, levels=0, alpha=0.1, colors=["blue", "red"])
+
+    for label in np.unique(L):
+        if label == 0:
+            l = "False"
+        else:
+            l = "True"
+        plt.scatter(
+            D_reduced[0, L == label], D_reduced[1, L == label],
+            label=f"{l}", alpha=0.8, s=1
+        )
+    
+    # Labels and formatting
+    plt.xlabel(f"Feature {dim_to_keep[0]}")
+    plt.ylabel(f"Feature {dim_to_keep[1]}")
+    if plot_title is not None:
+        plt.title(plot_title)
+    plt.legend()
+    plt.grid(True, linestyle=":", alpha=0.6)
+
     plt.show()

@@ -176,7 +176,7 @@ class MVGModel(GaussianModel):
         self.parameters = parameters
     @staticmethod
     def get_model_name():
-        return "Multivariate_Gaussian"
+        return "MVG"
 
 class NaiveGModel(GaussianModel):    
     def fit(self):
@@ -190,7 +190,7 @@ class NaiveGModel(GaussianModel):
         self.parameters = parameters
     @staticmethod
     def get_model_name():
-        return "Naive_Bayes_Gaussian"
+        return "NBG"
 
 class TiedGModel(GaussianModel):
     def fit(self):
@@ -206,7 +206,7 @@ class TiedGModel(GaussianModel):
         self.parameters = {k:(mu, C) for (k, mu) in parameters.items()}
     @staticmethod
     def get_model_name():
-        return "Tied_Covariance_Gaussian"
+        return "TCG"
 
 class TiedNaiveGModel(GaussianModel):
     def fit(self):
@@ -223,7 +223,7 @@ class TiedNaiveGModel(GaussianModel):
         self.parameters = {k:(mu, C) for (k, mu) in parameters.items()}
     @staticmethod
     def get_model_name():
-        return "Naive_Bayes_Tied_Covariance_Gaussian"
+        return "NTG"
 
 class GaussianMixtureModel(Model):
     def __init__(self, D, L = None, label_dict = None, l_priors = None, gmm = None, n = None, psi = 0.01, d = 1e-6, alpha = 0.1):
@@ -337,7 +337,11 @@ class GaussianMixtureModel(Model):
         l_scores = self.get_scores(D)
         predictions = self.get_predictions(l_scores)
 
-        return predictions, l_scores
+        if len(self.label_dict) == 2:
+            # binary problem, return llr
+            return predictions, (l_scores*[[-1],[1]]).sum(0)
+        else:
+            return predictions, l_scores
 
     def get_scores(self, D):
         l_likelihoods = np.array([logpdf_GMM(D, self.gmm[label_int])[0] for label_int in self.label_dict.values()])
