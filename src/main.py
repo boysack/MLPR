@@ -8,7 +8,7 @@ from modules.utils.metrics import error_rate, calculate_overlap, empirical_bayes
 from modules.features.dimensionality_reduction import lda, pca, pca_pipe, lda_pipe
 from modules.features.transformation import L2_normalization, center_data, no_op, quadratic_feature_mapping, withening, z_normalization
 from modules.models.mean_classifier import LdaBinaryClassifier
-from modules.models.gaussians import MVGModel, TiedGModel, NaiveGModel, TiedNaiveGModel, MVGMModel, NaiveGMModel, TiedGMModel
+from modules.models.gaussians import MVGModel, TiedGModel, NaiveGModel, TiedNaiveGModel, MVGMModel, TiedGMModel, DiagGMModel
 from modules.models.logistic_regression import LogisticRegression
 
 import matplotlib.pyplot as plt
@@ -631,7 +631,7 @@ def main():
     """ 
     models = [
         MVGMModel,
-        NaiveGMModel,
+        DiagGMModel,
         TiedGMModel
     ]
 
@@ -666,7 +666,6 @@ def main():
     #    pickle.dump(results, file)
     with open("./project/saved_models/GMM_results.pkl", "rb") as file:
         results = pickle.load(file)
-
     sorted_k = sorted(results, key=lambda k: results[k]["min_dcf"])
     for k in sorted_k:
         res = results[k]
@@ -680,6 +679,7 @@ def main():
     ######### CALIBRATION AND FUSION
 
     """ 
+    """ 
     # NBG
     nbgm = NaiveGModel(DTR, LTR, label_dict)
     nbgm.fit()
@@ -692,15 +692,14 @@ def main():
 
     with open(f"./project/saved_models/SVM_RBF_xi_1_g_e^-2)_c_31.62278.pkl", "rb") as file:
         svm = pickle.load(file)
-
     with open("./project/saved_models/GMM_results.pkl", "rb") as file:
-        gmm = pickle.load(file)["NGM model (n_T=16, n_F= 8)"]["model"]
+        gmm = pickle.load(file)["DGM model (n_T=16, n_F= 8)"]["model"]
 
     models = [
         (nbgm, (DVAL), "NBG[RAW]"),
         (lr_qfm, (DVAL_q), "LR[QFM]"),
         (svm, (DVAL), "SVM[RBF]"),
-        (gmm, (DVAL), "NBGM[RAW]"),
+        (gmm, (DVAL), "DGM[RAW]"),
     ]
     models_res = [m[0].predict(m[1])[1] for m in models]
     calibs_res = []
@@ -714,10 +713,11 @@ def main():
     # plot DCF of no calib/calib models 
     for model, calib_res, model_res in zip(models, calibs_res, models_res):
         # no calib
-        #bayes_error_plot_binary(LVAL, model_res, start=-4, stop=4, act_DCF_prefix=model[1], show=False, alpha=0.5, plot_title="Selected models Bayes Error plots")
+        #bayes_error_plot_binary(LVAL, model_res, start=-4, stop=4, act_DCF_prefix=model[2], show=False, alpha=0.5, plot_title="Selected models Bayes Error plots")
         # calib
         bayes_error_plot_binary(calib_res[0][2], calib_res[0][0], start=-4, stop=4, act_DCF_prefix=model[2]+"(calib.)", show=False, alpha=0.5, plot_title="Selected models Bayes Error plots (calib.)")
-    plt.show()
+    plt.show() 
+    """
 
     # fuse no calib models 
     all_scores = np.vstack([scores for scores in models_res])
@@ -739,14 +739,14 @@ def main():
     #   - LR : Non-prior-weighted LogReg Quadratic Feature Mapping (without calibration) using lambda=0.013219411484660288
     #   - SVM: RBF using xi=1, gamma=e^-2, C=31.62278 (name = SVM_RBF_xi_1_g_e^-2)_c_31.62278.pkl)
     #       - poly using xi=0 d=2 c=1 C=0.00003 ( this achieve a better duality gap, is it worth to consider? )
-    #   - GMM: Naive using components: 16(T) and 8(F) and default parameters
+    #   - GMM: Diagonal covariance using components: 16(T) and 8(F) and default parameters
 
     # FINAL MODEL
     with open("./project/saved_models/GMM_results.pkl", "rb") as file:
-        gmm = pickle.load(file)["NGM model (n_T=16, n_F= 8)"]["model"]
+        gmm = pickle.load(file)["DGM model (n_T=16, n_F= 8)"]["model"]
     predictions, scores = gmm.predict(DEVAL)
-    print(f"NGM model (n_T=16, n_F= 8) -> Error Rate={error_rate(LEVAL, predictions)*100:.2f}% | minDCF={min_DCF_binary(.1, LEVAL, scores)} | actDCF={empirical_bayes_risk_binary(.1, LEVAL, scores)}")
-    bayes_error_plot_binary(LEVAL, scores, start=-4, stop=4, plot_title="NBG Mixture Model Bayes Error (nT=16, nF=8) - EVAL SET")
+    print(f"DGM model (n_T=16, n_F= 8) -> Error Rate={error_rate(LEVAL, predictions)*100:.2f}% | minDCF={min_DCF_binary(.1, LEVAL, scores)} | actDCF={empirical_bayes_risk_binary(.1, LEVAL, scores)}")
+    bayes_error_plot_binary(LEVAL, scores, start=-4, stop=4, plot_title="DGM Mixture Model Bayes Error (nT=16, nF=8) - EVAL SET")
 
     """ with open(f"./project/saved_models/SVM_RBF_xi_1_g_e^-2)_c_31.62278.pkl", "rb") as file:
         svm = pickle.load(file)

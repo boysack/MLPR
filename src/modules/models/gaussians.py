@@ -395,6 +395,22 @@ class NaiveGMModel(GaussianMixtureModel):
     @staticmethod
     def get_model_name():
         return "NGM model"
+
+class DiagGMModel(GaussianMixtureModel):    
+    def maximize(self, posterior_g, c):
+        Z_g = posterior_g.sum(1)
+        F_g = (posterior_g[:, np.newaxis, :] * self.D[:, self.L==c]).sum(2)
+        S_g = np.dot(posterior_g[:, np.newaxis, :] * self.D[:, self.L==c], self.D[:, self.L==c].T)
+
+        # TODO: is it really beneficial? try to iteratively calculate (and check if it's right this way)
+        mu = (F_g/Z_g[:, np.newaxis]).T
+        C = (S_g/Z_g[:, np.newaxis, np.newaxis]).T - np.einsum('if,jf->ijf', mu, mu)
+        w = Z_g/Z_g.sum()
+
+        return [(w[i], col(mu[:, i]), covariance_constraining(self.psi, (C[:, :, i]) * np.eye(C.shape[0]))) for i in range(len(self.gmm[c]))]
+    @staticmethod
+    def get_model_name():
+        return "DGM model"
     
 class TiedGMModel(GaussianMixtureModel):
     def maximize(self, posterior_g, c):
