@@ -679,7 +679,6 @@ def main():
     ######### CALIBRATION AND FUSION
 
     """ 
-    """ 
     # NBG
     nbgm = NaiveGModel(DTR, LTR, label_dict)
     nbgm.fit()
@@ -717,7 +716,6 @@ def main():
         # calib
         bayes_error_plot_binary(calib_res[0][2], calib_res[0][0], start=-4, stop=4, act_DCF_prefix=model[2]+"(calib.)", show=False, alpha=0.5, plot_title="Selected models Bayes Error plots (calib.)")
     plt.show() 
-    """
 
     # fuse no calib models 
     all_scores = np.vstack([scores for scores in models_res])
@@ -761,19 +759,5 @@ def main():
     # - calibrate using kfold on validation data
     # - evaluate (in the end for the choosen system) the goodness of the classificator
     
-    # loop example using multiple models:
-    # - instantiate model
-    # - fit model
-    # - retrieve prediction
-    # - print error_rate (min_DCF/act_DCF?)
-    # - save bayes error plots (ROC curve? other plots?)
-
-    # TODO: where to save? as a csv? or save the entire model? save a ranking?
-    # metrics and plot to save:
-    # - parameter/model configuration
-    # - accuracy/error rate
-    # - actDCF/minDCF
-    # - Bayes error plot
-
 if __name__=="__main__":
     main()
